@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<Devices>
+	<Device type="custom" id="notificationPerson">
+		<Name>Person notification settings</Name>
+		<ConfigUI>
+			<Field type="label" id="intro">
+				<Label>
+Enter your information regarding the person to receive notifications</Label>
+			</Field>
+			<Field type="label" id="introspace">
+				<Label> </Label>
+			</Field>
+			<Field type="textfield" id="personName">
+				<Label>Name:</Label>
+			</Field>
+			<Field type="menu" id="personPresenceVariable">
+				<Label>Presence variable:</Label>
+				<List class="indigo.variables" filter=""/>
+			</Field>
+			<Field type="label" id="personVariableGuidance" alignWithControl="true">
+				<Label>Select an (optional) variable that is true when person is present. If presence is not activated in plugin config this will not have any effect</Label>
+			</Field>
+			<Field type="label" id="introNotification">
+				<Label>
+				
+Notification delivery options</Label>
+			</Field>
+			<Field id="simpleSeparator1" type="separator"/>
+			<Field type="textfield" id="personEmail">
+				<Label>E-mail address:</Label>
+			</Field>
+			<Field type="list" id="personGrowlNotificationTypes" rows="8">
+				<Label>Growl notification types:</Label>
+				<List class="com.perceptiveautomation.indigoplugin.growl" filter="" method="getNotificationList"/>
+			</Field>
+			<Field type="label" id="growlGuidance" alignWithControl="true">
+				<Label>Select growl notification type(s) that are "linked" to the person. When creating a notification using this plugin you will choose which growl notification types to use. This way the plugin can determine which growl types are to be sent based on presence.</Label>
+			</Field>
+			<Field type="menu" id="personLogVariable">
+				<Label>Log variable:</Label>
+				<List class="indigo.variables" filter=""/>
+			</Field>
+			<Field type="label" id="personLogVariableGuidance" alignWithControl="true">
+				<Label>When specified, the plugin will write the last notification to that variable
+				</Label>
+			</Field>
+		</ConfigUI>
+	</Device>
+</Devices>
