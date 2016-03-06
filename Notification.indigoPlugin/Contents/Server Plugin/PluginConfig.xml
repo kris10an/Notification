@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<PluginConfig>
+	<Field type="checkbox" id="debug" defaultValue="false">
+		<Label>Debug logging:</Label>
+		<Description></Description>
+	</Field>
+	<Field type="checkbox" id="pluginLog" defaultValue="true">
+		<Label>Plugin log:</Label>
+		<Description>Log all notifications in plugin log files</Description>
+	</Field>
+	<Field type="label" id="infoPluginLog" visibleBindingId="pluginLog" visibleBindingValue="true" alignWithControl="true">
+		<Label>One log file per day will be created in the folder "Notifications" within your Indigo logs folder. Note that there are no rotation/deletion of old log files.</Label>
+	</Field>
+</PluginConfig>

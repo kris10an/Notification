@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <Actions>
-	<SupportURL>http://wiki.indigodomo.com/doku.php?id=plugins:example_dev_1</SupportURL>
+	<SupportURL>http://localhosy(</SupportURL>
 	<Action id="resetHardware" deviceFilter="self">
 		<Name>Reset Hardware</Name>
 		<CallbackMethod>resetHardware</CallbackMethod>

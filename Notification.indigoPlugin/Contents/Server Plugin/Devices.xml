@@ -10,12 +10,16 @@ Enter your information regarding the person to receive notifications</Label>
 			<Field type="label" id="introspace">
 				<Label> </Label>
 			</Field>
+			<Field type="checkbox" id="enable" defaultValue="true">
+				<Label>Enable notifications:</Label>
+				<Description>To temporarily disable notifications etc.</Description>
+			</Field>
 			<Field type="menu" id="presenceVariable">
 				<Label>Presence variable:</Label>
 				<List class="indigo.variables" filter=""/>
 			</Field>
 			<Field type="label" id="personVariableGuidance" alignWithControl="true">
-				<Label>Select an (optional) variable that is true when person is present. If presence is not activated in plugin config this will not have any effect</Label>
+				<Label>Select an (optional) variable that is true when person is present. If presence is not activated in notification category this will not have any effect</Label>
 			</Field>
 			<Field type="label" id="introNotification">
 				<Label>
@@ -42,20 +46,52 @@ Notification delivery options</Label>
 				</Label>
 			</Field>
 		</ConfigUI>
+		<States>
+			<State id="lastNotificationTime">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Last notification time</TriggerLabel>
+				<ControlPageLabel>Last notification time</ControlPageLabel>
+			</State>
+			<State id="lastNotificationIdentifier">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Last notification identifier</TriggerLabel>
+				<ControlPageLabel>Last notification identifier</ControlPageLabel>
+			</State>
+			<State id="lastNotificationText">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Last notification text</TriggerLabel>
+				<ControlPageLabel>Last notification text</ControlPageLabel>
+			</State>
+			<State id="lastNotificationCategory">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Last notification category</TriggerLabel>
+				<ControlPageLabel>Last notification category</ControlPageLabel>
+			</State>
+			<State id="present">
+				<ValueType>Boolean</ValueType>
+				<TriggerLabel>Presence</TriggerLabel>
+				<ControlPageLabel>Person is present</ControlPageLabel>
+			</State>
+		</States>
+		<UiDisplayStateId>lastNotificationTime</UiDisplayStateId>
 	</Device>
 	<Device type="custom" id="notificationCategory">
 		<Name>Notification category</Name>
 		<ConfigUI>
+			<Field type="checkbox" id="enable" defaultValue="true">
+				<Label>Enable category:</Label>
+				<Description>Temporarily disable this category etc.</Description>
+			</Field>
 			<Field type="label" id="intro">
 				<Label>
 Presence options</Label>
 			</Field>
 			<Field id="simpleSeparator0" type="separator"/>
-			<Field type="checkbox" id="notifyPresent" defaultValue="true">
+			<Field type="checkbox" id="notifyPresent" defaultValue="false">
 				<Label>Notify present only:</Label>
 				<Description>Notify only those that are present, others are ignored</Description>
 			</Field>
-			<Field type="checkbox" id="notifyAllIfNotPresent" defaultValue="true">
+			<Field type="checkbox" id="notifyAllIfNotPresent" defaultValue="false">
 				<Label>Notify all if none present:</Label>
 				<Description>Notify all recipients if none are present</Description>
 			</Field>
@@ -64,6 +100,20 @@ Presence options</Label>
 How to deliver notification</Label>
 			</Field>
 			<Field id="simpleSeparator1" type="separator"/>
+			<Field type="menu" id="sendEvery" defaultValue="always">
+				<Label>Deliver:</Label>
+				<List>
+					<Option value="always">Always</Option>
+					<Option value="1hour">Once per hour</Option>
+					<Option value="12hours">Once per 12 hours</Option>
+					<Option value="1day">Once per day</Option>
+					<Option value="1week">Once per week</Option>
+					<Option value="1month">Once per month</Option>
+				</List>
+			</Field>
+			<Field type="label" id="infoSendEvery" visibleBindingId="sendEvery" visibleBindingValue="1hour,12hours,1day,1week,1month" alignWithControl="true">
+				<Label>Notification category will not be repeated for the chosen interval</Label>
+			</Field>
 			<Field type="checkbox" id="log" defaultValue="true">
 				<Label>Indigo log:</Label>
 				<Description>Write notification to Indigo log</Description>
@@ -128,7 +178,7 @@ To whom to deliver notification</Label>
 				<Label>Deliver to persons:</Label>
 				<List class="indigo.devices" filter="com.perceptiveautomation.indigoplugin.notification.notificationPerson"/>
 			</Field>
-			<Field type="list" id="growlTypes" rows="6">
+			<Field type="list" id="growlTypes" rows="6" visibleBindingId="push" visibleBindingValue="true">
 				<Label>Growl notification types:</Label>
 				<List class="com.perceptiveautomation.indigoplugin.growl" filter="" method="getNotificationList"/>
 			</Field>
@@ -137,5 +187,28 @@ To whom to deliver notification</Label>
 Please remember that persons may be omitted from notification due to not being present. Also if one or more growl notification types is connected to a person, this will be omitted if that person is not present</Label>
 			</Field>
 		</ConfigUI>
+		<States>
+			<State id="lastNotificationTime">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Last notification time</TriggerLabel>
+				<ControlPageLabel>Last notification time</ControlPageLabel>
+			</State>
+			<State id="lastNotificationIdentifier">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Last notification identifier</TriggerLabel>
+				<ControlPageLabel>Last notification identifier</ControlPageLabel>
+			</State>
+			<State id="lastNotificationText">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Last notification text</TriggerLabel>
+				<ControlPageLabel>Last notification text</ControlPageLabel>
+			</State>
+			<State id="lastNotifiedPersons">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Last notified persons</TriggerLabel>
+				<ControlPageLabel>Last notified persons</ControlPageLabel>
+			</State>
+		</States>
+		<UiDisplayStateId>lastNotificationTime</UiDisplayStateId>
 	</Device>
 </Devices>
