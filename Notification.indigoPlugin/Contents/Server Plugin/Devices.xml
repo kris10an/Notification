@@ -10,10 +10,7 @@ Enter your information regarding the person to receive notifications</Label>
 			<Field type="label" id="introspace">
 				<Label> </Label>
 			</Field>
-			<Field type="textfield" id="personName">
-				<Label>Name:</Label>
-			</Field>
-			<Field type="menu" id="personPresenceVariable">
+			<Field type="menu" id="presenceVariable">
 				<Label>Presence variable:</Label>
 				<List class="indigo.variables" filter=""/>
 			</Field>
@@ -26,23 +23,118 @@ Enter your information regarding the person to receive notifications</Label>
 Notification delivery options</Label>
 			</Field>
 			<Field id="simpleSeparator1" type="separator"/>
-			<Field type="textfield" id="personEmail">
+			<Field type="textfield" id="email">
 				<Label>E-mail address:</Label>
 			</Field>
-			<Field type="list" id="personGrowlNotificationTypes" rows="8">
+			<Field type="list" id="growlTypes" rows="8">
 				<Label>Growl notification types:</Label>
 				<List class="com.perceptiveautomation.indigoplugin.growl" filter="" method="getNotificationList"/>
 			</Field>
 			<Field type="label" id="growlGuidance" alignWithControl="true">
 				<Label>Select growl notification type(s) that are "linked" to the person. When creating a notification using this plugin you will choose which growl notification types to use. This way the plugin can determine which growl types are to be sent based on presence.</Label>
 			</Field>
-			<Field type="menu" id="personLogVariable">
+			<Field type="menu" id="logVariable">
 				<Label>Log variable:</Label>
 				<List class="indigo.variables" filter=""/>
 			</Field>
 			<Field type="label" id="personLogVariableGuidance" alignWithControl="true">
 				<Label>When specified, the plugin will write the last notification to that variable
 				</Label>
+			</Field>
+		</ConfigUI>
+	</Device>
+	<Device type="custom" id="notificationCategory">
+		<Name>Notification category</Name>
+		<ConfigUI>
+			<Field type="label" id="intro">
+				<Label>
+Presence options</Label>
+			</Field>
+			<Field id="simpleSeparator0" type="separator"/>
+			<Field type="checkbox" id="notifyPresent" defaultValue="true">
+				<Label>Notify present only:</Label>
+				<Description>Notify only those that are present, others are ignored</Description>
+			</Field>
+			<Field type="checkbox" id="notifyAllIfNotPresent" defaultValue="true">
+				<Label>Notify all if none present:</Label>
+				<Description>Notify all recipients if none are present</Description>
+			</Field>
+			<Field type="label" id="introNotification">
+				<Label>				
+How to deliver notification</Label>
+			</Field>
+			<Field id="simpleSeparator1" type="separator"/>
+			<Field type="checkbox" id="log" defaultValue="true">
+				<Label>Indigo log:</Label>
+				<Description>Write notification to Indigo log</Description>
+			</Field>
+			<Field type="checkbox" id="notificationLog" defaultValue="true">
+				<Label>Notification log:</Label>
+				<Description>Write notification to plugin log file</Description>
+			</Field>
+			<Field type="textfield" id="logType">
+				<Label>Log type</Label>
+			</Field>
+			<Field type="checkbox" id="logAsError" defaultValue="false">
+				<Label>Log as error:</Label>
+				<Description>Log notification as error code</Description>
+			</Field>
+			<Field type="checkbox" id="email" defaultValue="true">
+				<Label>E-mail:</Label>
+				<Description>Deliver notification as e-mail</Description>
+			</Field>
+			<Field type="textfield" id="alwaysDeliverEmail">
+				<Label>Always deliver to e-mail:</Label>
+			</Field>
+			<Field type="label" id="alwaysEmailGuidance" alignWithControl="true">
+				<Label>Always deliver notification to this e-mail regardless of other settings (presence etc.)</Label>
+			</Field>
+			<Field type="checkbox" id="push" defaultValue="false">
+				<Label>Push:</Label>
+				<Description>Push notification (growl)</Description>
+			</Field>
+			<Field type="menu" id="growlPriority" defaultValue="0" visibleBindingId="push" visibleBindingValue="true">
+				<Label>Growl priority:</Label>
+				<List>
+					<Option value="-2">-2</Option>
+					<Option value="-1">-1</Option>
+					<Option value="0">0</Option>
+					<Option value="1">1</Option>
+					<Option value="2">2</Option>
+				</List>
+			</Field>
+			<Field type="checkbox" id="growlSticky" defaultValue="false" visibleBindingId="push" visibleBindingValue="true">
+				<Label>Growl sticky:</Label>
+				<Description>Make growl notification sticky</Description>
+			</Field>
+			<Field type="checkbox" id="speak" defaultValue="false">
+				<Label>Speech:</Label>
+				<Description>Speak notification</Description>
+			</Field>
+			<Field type="menu" id="beforeSpeakActionGroup" visibleBindingId="speak" visibleBindingValue="true">
+				<Label>Before speech action group:</Label>
+				<List class="indigo.actionGroups" filter=""/>
+			</Field>
+			<Field type="menu" id="afterSpeakActionGroup" visibleBindingId="speak" visibleBindingValue="true">
+				<Label>After speech action group:</Label>
+				<List class="indigo.actionGroups" filter=""/>
+			</Field>
+			<Field type="label" id="introPersons">
+				<Label>			
+To whom to deliver notification</Label>
+			</Field>
+			<Field id="simpleSeparator2" type="separator"/>
+			<Field type="list" id="deliverTo" rows="4">
+				<Label>Deliver to persons:</Label>
+				<List class="indigo.devices" filter="com.perceptiveautomation.indigoplugin.notification.notificationPerson"/>
+			</Field>
+			<Field type="list" id="growlTypes" rows="6">
+				<Label>Growl notification types:</Label>
+				<List class="com.perceptiveautomation.indigoplugin.growl" filter="" method="getNotificationList"/>
+			</Field>
+			<Field type="label" id="infoPersons" visibleBindingId="notifyPresent" visibleBindingValue="true">
+				<Label>
+Please remember that persons may be omitted from notification due to not being present. Also if one or more growl notification types is connected to a person, this will be omitted if that person is not present</Label>
 			</Field>
 		</ConfigUI>
 	</Device>
