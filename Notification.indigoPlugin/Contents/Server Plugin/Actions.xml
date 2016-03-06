@@ -1,25 +1,82 @@
 <?xml version="1.0"?>
 <Actions>
-	<SupportURL>http://localhosy(</SupportURL>
-	<Action id="resetHardware" deviceFilter="self">
-		<Name>Reset Hardware</Name>
-		<CallbackMethod>resetHardware</CallbackMethod>
-	</Action>
-	<Action id="updateHardwareFirmware" deviceFilter="self">
-		<Name>Update Hardware Firmware</Name>
-		<CallbackMethod>updateHardwareFirmware</CallbackMethod>
+	<SupportURL>http://localhost</SupportURL>
+	<Action id="sendNotification" deviceFilter="self.notificationCategory" uiPath="NotificationActions">
+		<Name>Notification (notification plugin)</Name>
+		<CallbackMethod>sendNotification</CallbackMethod>
 		<ConfigUI>
-			<SupportURL>http://wiki.indigodomo.com/doku.php?id=plugins:example_dev_1</SupportURL>
-			<Field id="description" type="textfield" hidden="true">
-				<Label>runtime calculated</Label>
+			<Field type="textfield" id="text">
+				<Label>Notification text</Label>
 			</Field>
-			<Field id="updateToLatestBeta" type="checkbox" default="no">
-				<Label>Update to latest beta (example):</Label>
-				<Description>Update to the latest beta version (not really)</Description>
+			<Field type="textfield" id="title">
+				<Label>Notification title</Label>
 			</Field>
-			<Field id="notifyBetaUpdates" type="checkbox" default="no">
-				<Label>Notify on new betas (example):</Label>
-				<Description>Send notifications when there's a new beta version (not really)</Description>
+			<Field type="label" id="titleGuidance" alignWithControl="true">
+				<Label>Subject for e-mail, title for growl notification. Log type from category will be used if left blank</Label>
+			</Field>
+			<Field type="textfield" id="identifier">
+				<Label>Unique identifier</Label>
+			</Field>
+			<Field type="label" id="identifierGuidance" alignWithControl="true">
+				<Label>You may specify an (optional) identifier for the notification which allows you to do the following:
+1) Identify where your notification was sent from
+2) Not resend the notification for a given interval (below):</Label>
+			</Field>
+			<Field type="menu" id="sendEvery" defaultValue="always">
+				<Label>Deliver:</Label>
+				<List>
+					<Option value="always">Always</Option>
+					<Option value="1hour">Once per hour</Option>
+					<Option value="12hours">Once per 12 hours</Option>
+					<Option value="1day">Once per day</Option>
+					<Option value="1week">Once per week</Option>
+					<Option value="1month">Once per month</Option>
+				</List>
+			</Field>
+			<Field type="label" id="infoSendEvery" visibleBindingId="sendEvery" visibleBindingValue="1hour,12hours,1day,1week,1month" alignWithControl="true">
+				<Label>Notifications with the above given identifier will not be repeated for the chosen interval.</Label>
+			</Field>
+			<Field type="label" id="introOverride">
+				<Label>
+Override category settings (optional):</Label>
+			</Field>
+			<Field id="simpleSeparator1" type="separator"/>
+			<Field type="label" id="overrideGuidance" alignWithControl="true">
+				<Label>If you leave below fields blank, the settings from the notification will be used. If it is set here, the settings in category is overridden.</Label>
+			</Field>
+			<Field type="textfield" id="recipients">
+				<Label>Additional recipients</Label>
+			</Field>
+			<Field type="label" id="alwaysEmailGuidance" alignWithControl="true">
+				<Label>Specified recipients in addition to the ones from category
+Syntax: email:john@doe.com,email:mrjones@hotmail.com</Label>
+			</Field>
+			<Field type="menu" id="speak" defaultValue="default">
+				<Label>Speak notification:</Label>
+				<List>
+					<Option value="default">Use category setting</Option>
+					<Option value="true">Yes</Option>
+					<Option value="false">No</Option>
+				</List>
+			</Field>
+			<Field type="menu" id="log" defaultValue="default">
+				<Label>Notification to Indigo log:</Label>
+				<List>
+					<Option value="default">Use category setting</Option>
+					<Option value="true">Yes</Option>
+					<Option value="false">No</Option>
+				</List>
+			</Field>
+			<Field type="menu" id="logAsError" defaultValue="default">
+				<Label>Log as error:</Label>
+				<List>
+					<Option value="default">Use category setting</Option>
+					<Option value="true">Yes</Option>
+					<Option value="false">No</Option>
+				</List>
+			</Field>
+			<Field type="textfield" id="logType">
+				<Label>Log type</Label>
 			</Field>
 		</ConfigUI>
 	</Action>

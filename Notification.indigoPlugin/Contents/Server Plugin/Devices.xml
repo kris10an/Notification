@@ -112,7 +112,7 @@ How to deliver notification</Label>
 				</List>
 			</Field>
 			<Field type="label" id="infoSendEvery" visibleBindingId="sendEvery" visibleBindingValue="1hour,12hours,1day,1week,1month" alignWithControl="true">
-				<Label>Notification category will not be repeated for the chosen interval</Label>
+				<Label>Notification category will not be repeated for the chosen interval. Note that this applies to all notifications of this category, it is normally better to specify this on the notification action level.</Label>
 			</Field>
 			<Field type="checkbox" id="log" defaultValue="true">
 				<Label>Indigo log:</Label>

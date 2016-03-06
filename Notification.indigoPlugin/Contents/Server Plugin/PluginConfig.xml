@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <PluginConfig>
-	<Field type="checkbox" id="debug" defaultValue="false">
+	<Field type="checkbox" id="debugLog" defaultValue="false">
 		<Label>Debug logging:</Label>
 		<Description></Description>
 	</Field>
