@@ -1,3 +1,5 @@
 - Fix validation for UI screens
 - Sjekke enabled, også med python script -> OK
-- Sjekke sendEvery for kategori, funker denne? -> Stort sett OK, sjekk på nytt for uke (skuddår) + måned
+- Sjekke sendEvery for kategori, funker denne? -> Stort sett OK, sjekk på nytt for uke (skuddår) + måned -> OK
+- http://forums.indigodomo.com/viewtopic.php?f=108&t=15339
+- http://forums.indigodomo.com/viewtopic.php?f=108&t=15225

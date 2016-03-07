@@ -16,7 +16,7 @@
 				<List class="indigo.devices" filter="com.perceptiveautomation.indigoplugin.notification"/>
 			</Field>
 			<Field id="newValue" type="textfield">
-				<Label>New time value:</Label>
+				<Label>New time value (Y-m-d H:m:s):</Label>
 			</Field>
         </ConfigUI>
     </MenuItem>

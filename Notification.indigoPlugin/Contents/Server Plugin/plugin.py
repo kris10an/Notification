@@ -129,7 +129,7 @@ class Plugin(indigo.PluginBase):
 				elif catProps[u'sendEvery'] == u'1month':
 					if strvartime.timeDiff(lastSent, timeNow, 'seconds') >= 60*60*24*30: send = True
 				
-				self.debugLog(u'Notification category set to send every %s. Send now: %s' % (catProps[u'sendEvery'], str(send)))
+				self.debugLog(u'Notification category set to send every %s, Last notification sent %s. Send now: %s' % (catProps[u'sendEvery'], strvartime.prettyDate(lastSent), str(send)))
 	
 		else:
 			self.debugLog(u'Notification category has never been sent before, will send now')
@@ -160,13 +160,12 @@ class Plugin(indigo.PluginBase):
 		
 		try:
 			dev = indigo.devices[int(valuesDict[u'targetDevice'])]
-			dev.updateStateOnServer('lastNotificationTime',valuesDict[u'newValue'])
-		
-			errorsDict = indigo.Dict()
-			return (True, valuesDict, errorsDict)
+			dev.updateStateOnServer(u'lastNotificationTime',valuesDict[u'newValue'])
+			indigo.server.log(u'Last notification time for device "%s" set to %s' % (dev.name, valuesDict[u'newValue']))
+			return True
 		except:
 			self.ErrorLog(u'Could not update last notification time manually')
-			return (False, valuesDict, errorsDict)
+			return
 	
 		
 	########################################
