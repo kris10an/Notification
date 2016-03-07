@@ -10,10 +10,10 @@ Enter your information regarding the person to receive notifications</Label>
 			<Field type="label" id="introspace">
 				<Label> </Label>
 			</Field>
-			<Field type="checkbox" id="enable" defaultValue="true">
+			<!--<Field type="checkbox" id="enabled" defaultValue="true">
 				<Label>Enable notifications:</Label>
 				<Description>To temporarily disable notifications etc.</Description>
-			</Field>
+			</Field>-->
 			<Field type="menu" id="presenceVariable">
 				<Label>Presence variable:</Label>
 				<List class="indigo.variables" filter=""/>
@@ -78,10 +78,10 @@ Notification delivery options</Label>
 	<Device type="custom" id="notificationCategory">
 		<Name>Notification category</Name>
 		<ConfigUI>
-			<Field type="checkbox" id="enable" defaultValue="true">
+			<!--<Field type="checkbox" id="enabled" defaultValue="true">
 				<Label>Enable category:</Label>
 				<Description>Temporarily disable this category etc.</Description>
-			</Field>
+			</Field>-->
 			<Field type="label" id="intro">
 				<Label>
 Presence options</Label>
@@ -108,7 +108,7 @@ How to deliver notification</Label>
 					<Option value="12hours">Once per 12 hours</Option>
 					<Option value="1day">Once per day</Option>
 					<Option value="1week">Once per week</Option>
-					<Option value="1month">Once per month</Option>
+					<Option value="1month">Once per month (30 days)</Option>
 				</List>
 			</Field>
 			<Field type="label" id="infoSendEvery" visibleBindingId="sendEvery" visibleBindingValue="1hour,12hours,1day,1week,1month" alignWithControl="true">
@@ -192,6 +192,11 @@ Please remember that persons may be omitted from notification due to not being p
 				<ValueType>String</ValueType>
 				<TriggerLabel>Last notification time</TriggerLabel>
 				<ControlPageLabel>Last notification time</ControlPageLabel>
+			</State>
+			<State id="lastLogTime">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Last log time</TriggerLabel>
+				<ControlPageLabel>Last log time</ControlPageLabel>
 			</State>
 			<State id="lastNotificationIdentifier">
 				<ValueType>String</ValueType>

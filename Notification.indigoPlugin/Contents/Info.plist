@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
 	<key>PluginVersion</key>
-	<string>0.0.39</string>
+	<string>0.0.1</string>
 	<key>ServerApiVersion</key>
 	<string>1.19</string>
 	<key>IwsApiVersion</key>
 	<string>1.0.0</string>
 	<key>CFBundleDisplayName</key>
-	<string>Notification</string>
+	<string>Notification plugin</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.perceptiveautomation.indigoplugin.notification</string>
 	<key>CFBundleVersion</key>

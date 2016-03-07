@@ -4,6 +4,13 @@
 		<Label>Debug logging:</Label>
 		<Description></Description>
 	</Field>
+	<Field type="checkbox" id="extensiveDebug" defaultValue="false">
+		<Label>Extensive debug output:</Label>
+		<Description></Description>
+	</Field>
+	<Field type="label" id="infoDebug" alignWithControl="true" visibleBindingId="extensiveDebug" visibleBindingValue="true">
+		<Label>Use with care, lots of debug output</Label>
+	</Field>
 	<Field type="checkbox" id="pluginLog" defaultValue="true">
 		<Label>Plugin log:</Label>
 		<Description>Log all notifications in plugin log files</Description>

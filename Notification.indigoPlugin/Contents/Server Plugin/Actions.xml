@@ -30,7 +30,7 @@
 					<Option value="12hours">Once per 12 hours</Option>
 					<Option value="1day">Once per day</Option>
 					<Option value="1week">Once per week</Option>
-					<Option value="1month">Once per month</Option>
+					<Option value="1month">Once per month (30 days)</Option>
 				</List>
 			</Field>
 			<Field type="label" id="infoSendEvery" visibleBindingId="sendEvery" visibleBindingValue="1hour,12hours,1day,1week,1month" alignWithControl="true">

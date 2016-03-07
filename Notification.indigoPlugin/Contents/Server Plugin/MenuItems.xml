@@ -6,8 +6,18 @@
 	 back to the user you can post information into the Event Log.
 -->
 <MenuItems>
-	<MenuItem id="menu1">
-		<Name>Time Warp!</Name>
-		<CallbackMethod>timeWarp</CallbackMethod>
-	</MenuItem>
+    <MenuItem id="menu1">
+        <Name>Update last notification time...</Name>
+        <CallbackMethod>updateLastNotificationTimeManually</CallbackMethod>
+        <ButtonTitle>Update</ButtonTitle>
+        <ConfigUI>
+			<Field id="targetDevice" type="menu">
+				<Label>Device:</Label>
+				<List class="indigo.devices" filter="com.perceptiveautomation.indigoplugin.notification"/>
+			</Field>
+			<Field id="newValue" type="textfield">
+				<Label>New time value:</Label>
+			</Field>
+        </ConfigUI>
+    </MenuItem>
 </MenuItems>
