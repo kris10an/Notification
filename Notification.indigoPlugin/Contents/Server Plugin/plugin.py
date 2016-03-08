@@ -64,16 +64,24 @@ class Plugin(indigo.PluginBase):
 		if len(self.varFolderName) == 0:
 			# No folder name specified, quit plugin
 			self.pluginConfigErrorState = True
-			try:
-				while self.pluginConfigErrorState:
-					self.errorLog(u'No variable folder name specified in plugin config, please fix')
-					self.sleep(5)
-			except self.stopThread:
-				pass
-		
-# 		if not self.varFolderName in indigo.variables.folders:
-# 			self.debugLog(u'Variable folder "%s" not found, creating folder' % (self.varFolderName))
-# 			newFolder = indigo.variables.folder.create(self.varFolderName)
+			self.pluginConfigErrorMsg = u'No variable folder name specified in plugin config, please fix'
+			return
+		else:
+			if not self.varFolderName in indigo.variables.folders:
+				# Variable folder does not exist, create
+				self.debugLog(u'Variable folder "%s" not found, creating folder' % (self.varFolderName))
+				try:
+					newFolder = indigo.variables.folder.create(self.varFolderName)
+					indigo.variables.folder.displayInRemoteUI(newFolder, value=False)
+					self.varFolderId = newFolder.id
+					indigo.server.log(u'Variable folder "%s" did not exist, folder was created' % (self.varFolderName))
+				except:
+					self.errorLog(u'Could not create variable folder "%s" for some reason' % (self.varFolderName))
+			else:
+				# Find ID of existing folder
+				self.varFolderId = indigo.variables.folders[self.varFolderName]
+
+		indigo.server.log(u'Notification plugin started')
 
 	########################################
 	def shutdown(self):
@@ -85,6 +93,12 @@ class Plugin(indigo.PluginBase):
 		self.debug = self.pluginPrefs.get("debugLog", False)
 		self.extDebug = self.pluginPrefs.get(u'extensiveDebug', False)
 		self.pluginLog = self.pluginPrefs.get("pluginLog", True)
+		if self.pluginPrefs.get(u'varFolderName','Notification plugin log') != self.varFolderName:
+			#Variable folder name has changed, restart plugin
+			indigo.server.log(u'Variable folder name has changed, plugin will restart')
+			plugin = indigo.server.getPlugin(pluginId)
+			if plugin.isEnabled():
+   				plugin.restart(waitUntilDone=False)
 		self.varFolderName = self.pluginPrefs.get(u'varFolderName','Notification plugin log')
 		
 		# DO VALIDATION
@@ -101,7 +115,11 @@ class Plugin(indigo.PluginBase):
 	def runConcurrentThread(self):
 		try:
 			while True:
-				self.sleep(600)
+				# Check for errors
+				if self.pluginConfigErrorState:
+					self.errorLog(self.pluginConfigErrorMsg)
+					
+				self.sleep(5)
 		except self.StopThread:
 			pass
 			
