@@ -104,14 +104,14 @@ How to deliver notification</Label>
 				<Label>Deliver:</Label>
 				<List>
 					<Option value="always">Always</Option>
-					<Option value="1hour">Once per hour</Option>
-					<Option value="12hours">Once per 12 hours</Option>
-					<Option value="1day">Once per day</Option>
-					<Option value="1week">Once per week</Option>
-					<Option value="1month">Once per month (30 days)</Option>
+					<Option value="1 hour">Once per hour</Option>
+					<Option value="12 hours">Once per 12 hours</Option>
+					<Option value="1 day">Once per day</Option>
+					<Option value="1 week">Once per week</Option>
+					<Option value="1 month">Once per month (30 days)</Option>
 				</List>
 			</Field>
-			<Field type="label" id="infoSendEvery" visibleBindingId="sendEvery" visibleBindingValue="1hour,12hours,1day,1week,1month" alignWithControl="true">
+			<Field type="label" id="infoSendEvery" visibleBindingId="sendEvery" visibleBindingValue="1 hour,12 hours,1 day,1 week,1 month" alignWithControl="true">
 				<Label>Notification category will not be repeated for the chosen interval. Note that this applies to all notifications of this category, it is normally better to specify this on the notification action level.</Label>
 			</Field>
 			<Field type="checkbox" id="log" defaultValue="true">
@@ -176,7 +176,7 @@ To whom to deliver notification</Label>
 			<Field id="simpleSeparator2" type="separator"/>
 			<Field type="list" id="deliverTo" rows="4">
 				<Label>Deliver to persons:</Label>
-				<List class="indigo.devices" filter="com.perceptiveautomation.indigoplugin.notification.notificationPerson"/>
+				<List class="indigo.devices" filter="com.kris10an.indigoplugin.notification.notificationPerson"/>
 			</Field>
 			<Field type="list" id="growlTypes" rows="6" visibleBindingId="push" visibleBindingValue="true">
 				<Label>Growl notification types:</Label>

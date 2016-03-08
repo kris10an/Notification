@@ -18,4 +18,10 @@
 	<Field type="label" id="infoPluginLog" visibleBindingId="pluginLog" visibleBindingValue="true" alignWithControl="true">
 		<Label>One log file per day will be created in the folder "Notifications" within your Indigo logs folder. Note that there are no rotation/deletion of old log files.</Label>
 	</Field>
+	<Field type="textfield" id="varFolderName" defaultValue="Notification plugin log">
+		<Label>Variable folder:</Label>
+	</Field>
+	<Field type="label" id="infoVariable" alignWithControl="true">
+		<Label>A variable will be created to keep track of when notifications were sent, but only if delivery interval options are used.</Label>
+	</Field>
 </PluginConfig>

@@ -13,7 +13,7 @@
         <ConfigUI>
 			<Field id="targetDevice" type="menu">
 				<Label>Device:</Label>
-				<List class="indigo.devices" filter="com.perceptiveautomation.indigoplugin.notification"/>
+				<List class="indigo.devices" filter="com.kris10an.indigoplugin.notification"/>
 			</Field>
 			<Field id="newValue" type="textfield">
 				<Label>New time value (Y-m-d H:m:s):</Label>

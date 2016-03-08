@@ -26,14 +26,14 @@
 				<Label>Deliver:</Label>
 				<List>
 					<Option value="always">Always</Option>
-					<Option value="1hour">Once per hour</Option>
-					<Option value="12hours">Once per 12 hours</Option>
-					<Option value="1day">Once per day</Option>
-					<Option value="1week">Once per week</Option>
-					<Option value="1month">Once per month (30 days)</Option>
+					<Option value="1 hour">Once per hour</Option>
+					<Option value="12 hours">Once per 12 hours</Option>
+					<Option value="1 day">Once per day</Option>
+					<Option value="1 week">Once per week</Option>
+					<Option value="1 month">Once per month (30 days)</Option>
 				</List>
 			</Field>
-			<Field type="label" id="infoSendEvery" visibleBindingId="sendEvery" visibleBindingValue="1hour,12hours,1day,1week,1month" alignWithControl="true">
+			<Field type="label" id="infoSendEvery" visibleBindingId="sendEvery" visibleBindingValue="1 hour,12 hours,1 day,1 week,1 month" alignWithControl="true">
 				<Label>Notifications with the above given identifier will not be repeated for the chosen interval.</Label>
 			</Field>
 			<Field type="label" id="introOverride">
