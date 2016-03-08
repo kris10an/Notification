@@ -7,33 +7,33 @@ strtime.py
 try:
     import indigo
 except ImportError:
-    print "Attachments can only be used from within Indigo"
+    print u"Attachments can only be used from within Indigo"
     raise ImportError
     
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
-def timeToStr(ts='now',format='long'):
+def timeToStr(ts=u'now',format=u'long'):
 
-	if format == 'long':
-		strFormat = '%Y-%m-%d %H:%M:%S'
-	elif format == 'short':
-		strFormat = '%d.%m %H:%M'
+	if format == u'long':
+		strFormat = u'%Y-%m-%d %H:%M:%S'
+	elif format == u'short':
+		strFormat = u'%d.%m %H:%M'
 	else:
-		raise ValueError('Invalid string time format')
+		raise ValueError(u'Invalid string time format')
 		return 0
 
 	try:
-		if ts=='now':
+		if ts==u'now':
 			strtime=datetime.strftime(datetime.now(),strFormat)
 		else:
 			strtime=datetime.strftime(ts,strFormat)
 		return strtime
 	except:
-		raise RuntimeError('Could not create string from time')
+		raise RuntimeError(u'Could not create string from time')
 		return 0
 
-def timeToVar(var,ts='now',format='long'):
+def timeToVar(var,ts=u'now',format=u'long'):
 	try:
 		indigoVar=indigo.variables[var]
 	except:
@@ -43,30 +43,30 @@ def timeToVar(var,ts='now',format='long'):
 		indigo.variable.updateValue(indigoVar,value=timeToStr(ts,format))
 		return 1
 	except:
-		raise RuntimeError('Could not update timestamp variable')
+		raise RuntimeError(u'Could not update timestamp variable')
 		return 0
 
-def strToTime(str, format='long'):
-	if format == 'long':
-		strFormat = '%Y-%m-%d %H:%M:%S'
-	elif format == 'short':
-		strFormat = '%Y %d.%m %H:%M'
+def strToTime(str, format=u'long'):
+	if format == u'long':
+		strFormat = u'%Y-%m-%d %H:%M:%S'
+	elif format == u'short':
+		strFormat = u'%Y %d.%m %H:%M'
 	else:
-		raise ValueError('Invalid string time format: %s' % (format))
+		raise ValueError(u'Invalid string time format: %s' % (format))
 		return 0
 	
 	try:
-		if format == 'short':
+		if format == u'short':
 			timenow = datetime.now()
-			ts = shortTimeToTime(datetime.strptime(datetime.strftime(timenow, '%Y') + ' ' + str, strFormat)) # No year is included, attempt to find year. Assume that ts is in the past
+			ts = shortTimeToTime(datetime.strptime(datetime.strftime(timenow, u'%Y') + u' ' + str, strFormat)) # No year is included, attempt to find year. Assume that ts is in the past
 		else:
 			ts = datetime.strptime(str,strFormat)
 		return ts
 	except:
-		raise ValueError('Could not get timestamp from string: %s' % (str))
+		raise ValueError(u'Could not get timestamp from string: %s' % (str))
 		return 0
 		
-def varToTime(var, format='long'):
+def varToTime(var, format=u'long'):
 	try:
 		indigoVar=indigo.variables[var]
 	except:
@@ -76,7 +76,7 @@ def varToTime(var, format='long'):
 		ts = strToTime(indigoVar.value, format)
 		return ts
 	except:
-		raise ValueError('Could not get timestamp from variable: %s' % str(var))
+		raise ValueError(u'Could not get timestamp from variable: %s' % str(var))
 		return 0
 		
 def shortTimeToTime(ts):
@@ -88,37 +88,37 @@ def shortTimeToTime(ts):
 	return ts
 
 
-def timeDiff(td1,td2='now',unit='all'):
+def timeDiff(td1,td2=u'now',unit=u'all'):
 	# Unit :	all|minutes|seconds
 	#   """
 	#     Difference between date times
 	#     If td2 > td1, positive result, otherwise
 	#     negative result
 	#     """
-	if td2 == 'now':
+	if td2 == u'now':
 		td2 = datetime.now()
 	
 	diff = td2 - td1
-	if unit == 'all':
+	if unit == u'all':
 		return diff
-	elif unit == 'minutes':
+	elif unit == u'minutes':
 		minutes = diff.days*60*24 + int(diff.seconds/60)
 		return minutes
-	elif unit == 'seconds':
+	elif unit == u'seconds':
 		seconds = diff.days*24*60*60 + diff.seconds
 		return seconds
 	else:
-		raise ValueError('Invalid Unit format')
+		raise ValueError(u'Invalid Unit format')
 		return 0
 		
-def varTimeDiff(var1,var2='now',format='long',unit='all'):
+def varTimeDiff(var1,var2=u'now',format=u'long',unit=u'all'):
 	#     """
 	#     Difference between time string in two variables
 	#     If var2 > var1, positive result, otherwise
 	#     negative result
 	#     """
 	varTime1 = varToTime(var1,format=format)
-	if var2 == 'now':
+	if var2 == u'now':
 		varTime2 = datetime.now()
 	else:
 		varTime2 = varToTime(var2,format=format)
@@ -142,27 +142,27 @@ def prettyDate(time=False):
     day_diff = diff.days
 
     if day_diff < 0:
-        return ''
+        return u''
 
     if day_diff == 0:
         if second_diff < 10:
-            return "just now"
+            return u"just now"
         if second_diff < 60:
-            return str(second_diff) + " seconds ago"
+            return str(second_diff) + u" seconds ago"
         if second_diff < 120:
-            return  "a minute ago"
+            return  u"a minute ago"
         if second_diff < 3600:
-            return str( second_diff / 60 ) + " minutes ago"
+            return str( second_diff / 60 ) + u" minutes ago"
         if second_diff < 7200:
-            return "an hour ago"
+            return u"an hour ago"
         if second_diff < 86400:
-            return str( second_diff / 3600 ) + " hours ago"
+            return str( second_diff / 3600 ) + u" hours ago"
     if day_diff == 1:
-        return "Yesterday"
+        return u" yesterday"
     if day_diff < 7:
-        return str(day_diff) + " days ago"
+        return str(day_diff) + u" days ago"
     if day_diff < 31:
-        return str(day_diff/7) + " weeks ago"
+        return str(day_diff/7) + u" weeks ago"
     if day_diff < 365:
-        return str(day_diff/30) + " months ago"
-    return str(day_diff/365) + " years ago"
+        return str(day_diff/30) + u" months ago"
+    return str(day_diff/365) + u" years ago"

@@ -23,7 +23,7 @@
 2) Not resend the notification for a given interval (below):</Label>
 			</Field>
 			<Field type="menu" id="sendEvery" defaultValue="always">
-				<Label>Deliver:</Label>
+				<Label>Delivery frequency:</Label>
 				<List>
 					<Option value="always">Always</Option>
 					<Option value="1 hour">Once per hour</Option>

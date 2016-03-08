@@ -101,7 +101,7 @@ How to deliver notification</Label>
 			</Field>
 			<Field id="simpleSeparator1" type="separator"/>
 			<Field type="menu" id="sendEvery" defaultValue="always">
-				<Label>Deliver:</Label>
+				<Label>Delivery frequency:</Label>
 				<List>
 					<Option value="always">Always</Option>
 					<Option value="1 hour">Once per hour</Option>
@@ -112,7 +112,7 @@ How to deliver notification</Label>
 				</List>
 			</Field>
 			<Field type="label" id="infoSendEvery" visibleBindingId="sendEvery" visibleBindingValue="1 hour,12 hours,1 day,1 week,1 month" alignWithControl="true">
-				<Label>Notification category will not be repeated for the chosen interval. Note that this applies to all notifications of this category, it is normally better to specify this on the notification action level.</Label>
+				<Label>Notification category will not be repeated for the chosen interval. Note that this applies to all notifications of this category, it is normally better to specify this on the notification action level than here.</Label>
 			</Field>
 			<Field type="checkbox" id="log" defaultValue="true">
 				<Label>Indigo log:</Label>

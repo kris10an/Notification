@@ -22,6 +22,13 @@
 		<Label>Variable folder:</Label>
 	</Field>
 	<Field type="label" id="infoVariable" alignWithControl="true">
-		<Label>A variable will be created to keep track of when notifications were sent, but only if delivery interval options are used.</Label>
+		<Label>A variable will be created to keep track of when notifications were sent, but only if delivery frequency options are used.</Label>
+	</Field>
+	<Field type="checkbox" id="alwaysUseVariables" defaultValue="false">
+		<Label>Always use variable:</Label>
+		<Description>Log all notifications to variables</Description>
+	</Field>
+	<Field type="label" id="infoVariable2" alignWithControl="true" visibleBindingId="alwaysUseVariables" visibleBindingValue="true">
+		<Label>Normally, variables will only be used if delivery frequency in notification action is set to something else than 'always'</Label>
 	</Field>
 </PluginConfig>

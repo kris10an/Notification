@@ -16,7 +16,7 @@ import strvartime
 # our global name space by the host process.
 
 ############################
-# Globals
+# Globals, prefs, presets
 ############################
 
 pluginId = u'com.kris10an.indigoplugin.notification'
@@ -40,12 +40,13 @@ class Plugin(indigo.PluginBase):
 		self.extDebug = pluginPrefs.get(u'extensiveDebug', False)
 		self.pluginLog = pluginPrefs.get(u'pluginLog', True)
 		self.varFolderName = pluginPrefs.get(u'varFolderName','Notification plugin log')
+		self.alwaysUseVariables = pluginPrefs.get(u'alwaysUseVariables',False)
 		
 		# Error states
 		self.pluginConfigErrorState = False # Whether or not plugin is in error state, due to faulty plugin config
 		
 		# Presets, not configurable
-		self.notifyVarPrefix = u'notification'
+		self.notificationVarPrefix = u'_notification_'
 		self.logDir = indigo.server.getInstallFolderPath() + u'/Logs/Notifications/'
 		self.logFileSuffix = u' Notifications.txt'
 		self.logFileDateFormat = u'%Y-%m-%d'
@@ -100,6 +101,7 @@ class Plugin(indigo.PluginBase):
 			if plugin.isEnabled():
    				plugin.restart(waitUntilDone=False)
 		self.varFolderName = self.pluginPrefs.get(u'varFolderName','Notification plugin log')
+		self.alwaysUseVariables = self.pluginPrefs.get(u'alwaysUseVariables',False)
 		
 		# DO VALIDATION
 		self.pluginConfigErrorState = False
@@ -198,12 +200,51 @@ class Plugin(indigo.PluginBase):
 			
 		#Make sure presence for persons is up to date
 		if catProps[u'notifyPresent']:
+			self.debugLog(u'Notification category configured to use presence, updating presence status of persons')
 			numPresent = self.personsUpdatePresence(True)
+			self.debugLog(u'%i persons found to be present' % (numPresent))
 		
 		
 		
 		# Determine who to deliver to
 		
+		
+		# Update notification action variable if not sendEvery or if set in plugin config
+		if actionProps[u'sendEvery'] != u'always' or self.alwaysUseVariables:
+			variableNameStr = self.notificationVarPrefix + actionProps['identifier']
+			self.debugLog(u'Setting to update variable "%s"' % (variableNameStr))
+			# Check if variable exists
+			if not variableNameStr in indigo.variables:
+				# Variable does not exist, try to create it
+				self.debugLog(u'Variable "%s" does not exist, creating it' % (variableNameStr))
+				try:
+					notificationVar = indigo.variable.create(variableNameStr, value='none', folder=self.varFolderId)
+					self.debugLog(u'Created variable "%s" with id "%s"' % (variableNameStr, str(notificationVar.id)))
+				except:
+					self.errorLog(u'Could not create variable "%s" in folder "%s"' % (variableNameStr, self.varFolderName))
+			else:
+				# get variable
+				try:
+					notificationVar = indigo.variables[variableNameStr]
+				except:
+					self.errorLog(u'Could not get variable "%s"' % (variableNameStr))
+			
+			if self.extDebug: self.debugLog(u'notification log variable: %s' % (str(notificationVar)))
+			# set variable value
+			# Format: <Timestamp><tab><Notification text><tab><Notification category device id>
+			# Indigo doesn't have a last changed attribute of the variable, so timestamp needs to be inserted
+			try:
+				self.debugLog(u'Setting value of variable "%s"' % (variableNameStr))
+				varStr = strvartime.timeToStr() + u'\t' + actionProps[u'text'] + u'\t' + str(categoryDev.id)
+				if self.extDebug: self.debugLog(u'varStr: %s' % (varStr))
+				indigo.variable.updateValue(notificationVar, varStr)
+				self.debugLog(u'Value of variable "%s" set to: %s' % (variableNameStr, varStr))
+			except:
+				self.errorLog(u'Could not update value of variable "%s"' % (variableNameStr))
+				
+				
+			
+			
 			
 		#categoryDev.updateStateOnServer("lastNotificationTime", strvartime.timeToStr())
 			
@@ -242,7 +283,7 @@ class Plugin(indigo.PluginBase):
 		# iterate through "person" devices"
 		for dev in indigo.devices.iter(pluginId + u'.notificationPerson'):
 			devProps = dev.pluginProps
-			if self.extDebug: self.debugLog(u'"%s" plugin properties: %s' % (dev.name, str(devProps)))
+			if self.extDebug: self.debugLog(u'"%s" person notification device pluginProps: %s' % (dev.name, str(devProps)))
 			try:
 				# Set state of presence based on variable given in device config UI
 				presenceVar = indigo.variables[int(devProps['presenceVariable'])]
@@ -255,6 +296,7 @@ class Plugin(indigo.PluginBase):
 				dev.updateStateOnServer('present',True)
 				i = i + 1
 				self.debugLog(u'"%s" person device presence set to true as no real presence could be obtained from variable' % (dev.name))
+		return i
 				
 	########################################
 	# Validate device configuration
@@ -262,6 +304,8 @@ class Plugin(indigo.PluginBase):
 	def validateDeviceConfigUi(self, valuesDict, typeId, devId):
 		#  
 		if self.extDebug: self.debugLog(u"validateDeviceConfigUi: typeId: %s  devId: %s" % (typeId, str(devId)))
+		
+		#FIX and clean this function
 		
 		dev = indigo.devices[devId]
 		
