@@ -165,9 +165,8 @@ class Plugin(indigo.PluginBase):
 		if self.extDebug: self.debugLog(u'Notification category "%s" plugin props: %s' % (categoryDev.name, str(catProps)))
 		if self.extDebug: self.debugLog(u'Notification category "%s" states: %s' % (categoryDev.name, str(catStates)))
 		
-		# Check if every notification is to be delivered, or by interval
-		send = False
-		timeNow = datetime.now()
+		# Check if every notification is to be delivered, or by interval, and that interval is now exceeded
+		send = False # whether or not to send notification
 		
 		if(len(catStates[u'lastNotificationTime']) > 0):
 			if catProps[u'sendEvery'] == u'always':
@@ -177,19 +176,20 @@ class Plugin(indigo.PluginBase):
 			else:
 				# Notification category set to only send at given interval
 				# Check when notification category was last sent/used
+				self.debugLog(u'Notification category set to send every %s, need to check last sent time' % (catProps[u'sendEvery']))
 				try:
 					lastSent = strvartime.strToTime(catStates[u'lastNotificationTime'])
 					self.debugLog(u'Notification category last sent: %s' % (catStates[u'lastNotificationTime']))
 				except:
 					lastSent = strvartime.strToTime(u'2000-01-01 00:00:00')	
-				self.debugLog(u'Last notification time of category could not be obtatined, set to year 2000')
+					self.debugLog(u'Last notification time of category could not be obtatined, set to year 2000')
 				
 				#Determine if enough time has passed to send it again
 				if not catProps[u'sendEvery'] in intervalToSeconds:
 					self.errorLog(u'Invalid setting for delivery interval for category "%s". Check settings. Notification skipped.\nNotification text: %s' % (categoryDev.name, actionProps[u'text']))
 					return
 					
-				if strvartime.timeDiff(lastSent, timeNow, 'seconds') >= intervalToSeconds[catProps[u'sendEvery']]:
+				if strvartime.timeDiff(lastSent, 'now', 'seconds') >= intervalToSeconds[catProps[u'sendEvery']]:
 					send = True
 					self.debugLog(u'Notification category set to send every %s, Last notification sent %s. Will send notification now' % (catProps[u'sendEvery'], strvartime.prettyDate(lastSent)))
 				else:
@@ -198,6 +198,28 @@ class Plugin(indigo.PluginBase):
 			self.debugLog(u'Notification category has never been sent before, will send now')
 			send = True
 			
+		# Check on action level, that notification is to be sent (is not within specified interval frequency)
+		variableNameStr = self.notificationVarPrefix + actionProps['identifier']
+		if actionProps[u'sendEvery'] != u'always' and send: # a delivery frequency is set, need to check last time
+			self.debugLog(u'Notification action set to send every %s, need to check last sent time' % (actionProps[u'sendEvery']))
+			# Try to get value from variable
+			try:
+				notificationVar = indigo.variables[variableNameStr]
+				if self.extDebug: self.debugLog(u'Notification variable value: %s' % (notificationVar.value))
+				timeStr = notificationVar.value.rsplit(u'\t')[0]
+				timeStamp = strvartime.strToTime(timeStr)
+				if self.extDebug: self.debugLog(u'Notification action last sent: %s' % (timeStr))
+				if strvartime.timeDiff(timeStamp, 'now', 'seconds') < intervalToSeconds[actionProps[u'sendEvery']]:
+					# Interval/frequency has not been passed, will not send notification
+					send = False
+					self.debugLog(u'Notification action set to send every %s. Last notification sent %s. Will _not_ send notification now' % (actionProps[u'sendEvery'], strvartime.prettyDate(timeStamp)))
+			except:
+				if self.extDebug: self.debugLog(u'Could not get last sent time from variable, assume it hasn\'t been sent before and send notification')
+		elif actionProps[u'sendEvery'] == u'always':
+			self.debugLog(u'Notification action set to always send, no need to check time of last sent notification')
+		else:
+			self.debugLog(u'Determined by notification category last sent and set frequency that notification will not be sent, no need to check last sent time on action level')
+						
 		#Make sure presence for persons is up to date
 		if catProps[u'notifyPresent']:
 			self.debugLog(u'Notification category configured to use presence, updating presence status of persons')
@@ -242,11 +264,8 @@ class Plugin(indigo.PluginBase):
 			except:
 				self.errorLog(u'Could not update value of variable "%s"' % (variableNameStr))
 				
-				
-			
-			
-			
-		#categoryDev.updateStateOnServer("lastNotificationTime", strvartime.timeToStr())
+		# Update device states			
+		categoryDev.updateStateOnServer("lastNotificationTime", strvartime.timeToStr())
 			
 		#self.debugLog(u"%s" % str(categoryDev))
 
