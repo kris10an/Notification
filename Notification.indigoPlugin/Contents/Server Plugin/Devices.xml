@@ -35,7 +35,7 @@ Notification delivery options</Label>
 				<List class="com.perceptiveautomation.indigoplugin.growl" filter="" method="getNotificationList"/>
 			</Field>
 			<Field type="label" id="growlGuidance" alignWithControl="true">
-				<Label>Select growl notification type(s) that are "linked" to the person. When creating a notification using this plugin you will choose which growl notification types to use. This way the plugin can determine which growl types are to be sent based on presence.</Label>
+				<Label>Select growl notification type(s) that are "linked" to the person. Note that which growl types are actually delivered is given by the setting on category level, but the groups selected here may be excluded based on presence.</Label>
 			</Field>
 			<Field type="menu" id="logVariable">
 				<Label>Log variable:</Label>

@@ -219,28 +219,62 @@ class Plugin(indigo.PluginBase):
 			self.debugLog(u'Notification action set to always send, no need to check time of last sent notification')
 		else:
 			self.debugLog(u'Determined by notification category last sent and set frequency that notification will not be sent, no need to check last sent time on action level')
-						
-		#Make sure presence for persons is up to date
-		if catProps[u'notifyPresent']:
+		
+		# Start sending notification
+		growlsToSend = catProps[u'growlTypes'] # List given by notification category, will remove later based on presence
+		emailsToSend = [] # Opposite logic, include later based on presence
+		
+		if send:
+									
+			#Make sure presence for persons is up to date
 			self.debugLog(u'Notification category configured to use presence, updating presence status of persons')
 			numPresent = self.personsUpdatePresence(True)
 			self.debugLog(u'%i persons found to be present' % (numPresent))
+			
+			if numPresent == 0 and catProps[u'notifyPresent'] and not catProps[u'notifyAllIfNotPresent']:
+				self.debugLog(u'Notify present only chosen, 0 persons will be notified as none are present')
+			elif numPresent == 0 and catProps[u'notifyPresent'] and catProps[u'notifyAllIfNotPresent']:
+				self.debugLog(u'Notify all if none are present chosen, none are present -> all will be notified')
+			elif not catProps[u'notifyPresent']:
+				self.debugLog(u'Notification based on presence disabled, all will be notified')
+			elif catProps[u'notifyPresent']:
+				self.debugLog(u'There are %i people present, those will be notified' % (numPresent))
 		
-		
-		
-		# Determine who to deliver to
-		
+			# Determine who to deliver to
+			for person in catProps[u'deliverTo']:
+				#if self.extDebug: self.debugLog(u'Person given by category: %s' % (str(person)))
+				personDev = indigo.devices[int(person)]
+				personProps = personDev.pluginProps
+				personStates = personDev.states
+				if personDev.enabled:
+					if self.extDebug: self.debugLog(u'Person "%s" included by category, \nprops: %s\nstates: %s' % (personDev.name, str(personProps), str(personStates)))
+					if (personStates[u'present'] and catProps[u'notifyPresent']) or (numPresent == 0 and catProps[u'notifyAllIfNotPresent']) or not catProps[u'notifyPresent']:
+						# Include e-mail address
+						self.debugLog(u'Person "%s" is to be notified, include e-mail "%s" in notification recipients' % (personDev.name, personProps[u'email']))
+						if self.validateEmail(personProps[u'email']):
+							emailsToSend.extend(personProps[u'email'])
+						else:
+							self.errorLog(u'Email address "%s" for person "%s" could not be validated' % (personProps[u'email'], personDev.name))
+					else:
+						self.debugLog(u'Person "%s" is not present, remove as notification recipient' % (personDev.name))
+						# Exclude growl types for person
+						for gt in personProps['growlTypes']:
+							if gt in growlsToSend:
+								growlsToSend.remove(gt)
+								self.debugLog(u'Removed growl type %s from notifications, person "%s"' % (gt, personDev.name))
+				else:
+					self.debugLog(u'Person %s has been disabled, skipping notification' % (personDev.name))		
 		
 		# Update notification action variable if not sendEvery or if set in plugin config
 		if actionProps[u'sendEvery'] != u'always' or self.alwaysUseVariables:
-			variableNameStr = self.notificationVarPrefix + actionProps['identifier']
+			variableNameStr = self.notificationVarPrefix + actionProps[u'identifier']
 			self.debugLog(u'Setting to update variable "%s"' % (variableNameStr))
 			# Check if variable exists
 			if not variableNameStr in indigo.variables:
 				# Variable does not exist, try to create it
 				self.debugLog(u'Variable "%s" does not exist, creating it' % (variableNameStr))
 				try:
-					notificationVar = indigo.variable.create(variableNameStr, value='none', folder=self.varFolderId)
+					notificationVar = indigo.variable.create(variableNameStr, value=u'none', folder=self.varFolderId)
 					self.debugLog(u'Created variable "%s" with id "%s"' % (variableNameStr, str(notificationVar.id)))
 				except:
 					self.errorLog(u'Could not create variable "%s" in folder "%s"' % (variableNameStr, self.varFolderName))
@@ -322,7 +356,7 @@ class Plugin(indigo.PluginBase):
 	########################################
 	def validateDeviceConfigUi(self, valuesDict, typeId, devId):
 		#  
-		if self.extDebug: self.debugLog(u"validateDeviceConfigUi: typeId: %s  devId: %s" % (typeId, str(devId)))
+		if self.extDebug: self.debugLog(u"validateDeviceConfigUi: typeId: %s  devId: %s valuesDict: %s" % (typeId, str(devId), str(valuesDict)))
 		
 		#FIX and clean this function
 		
@@ -349,3 +383,11 @@ class Plugin(indigo.PluginBase):
 	def validatePrefsConfigUi(self, valuesDict):
 		if self.extDebug: self.debugLog("validatePrefsConfigUI valuesDict: %s" % str(valuesDict))
 		return (True, valuesDict)
+		
+		
+	########################################
+	# Validate e-mail addres:
+	####################
+	def validateEmail(self, emailStr):
+		# FIX
+		return True
