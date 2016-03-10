@@ -50,6 +50,13 @@ class Plugin(indigo.PluginBase):
 		self.logDir = indigo.server.getInstallFolderPath() + u'/Logs/Notifications/'
 		self.logFileSuffix = u' Notifications.txt'
 		self.logFileDateFormat = u'%Y-%m-%d'
+		
+		# Device and variable lists
+		self.personList = {}
+		self.personPresentList = {}
+		self.categoryList = {}
+		#self.presenceVariableList = {}
+		self.numPersonPresent = 0
 
 	########################################
 	def __del__(self):
@@ -82,31 +89,13 @@ class Plugin(indigo.PluginBase):
 				# Find ID of existing folder
 				self.varFolderId = indigo.variables.folders[self.varFolderName]
 
-		indigo.server.log(u'Notification plugin started')
+		self.debugLog(u'Notification plugin started')
 
 	########################################
 	def shutdown(self):
 		self.debugLog(u'Shutdown called')
 		pass
 		
-	def closedPrefsConfigUi(self, valuesDict, userCancelled):
-		# Plugin prefs
-		self.debug = self.pluginPrefs.get("debugLog", False)
-		self.extDebug = self.pluginPrefs.get(u'extensiveDebug', False)
-		self.pluginLog = self.pluginPrefs.get("pluginLog", True)
-		if self.pluginPrefs.get(u'varFolderName','Notification plugin log') != self.varFolderName:
-			#Variable folder name has changed, restart plugin
-			indigo.server.log(u'Variable folder name has changed, plugin will restart')
-			plugin = indigo.server.getPlugin(pluginId)
-			if plugin.isEnabled():
-   				plugin.restart(waitUntilDone=False)
-		self.varFolderName = self.pluginPrefs.get(u'varFolderName','Notification plugin log')
-		self.alwaysUseVariables = self.pluginPrefs.get(u'alwaysUseVariables',False)
-		
-		# DO VALIDATION
-		self.pluginConfigErrorState = False
-		
-
 	########################################
 	# If runConcurrentThread() is defined, then a new thread is automatically created
 	# and runConcurrentThread() is called in that thread after startup() has been called.
@@ -127,6 +116,69 @@ class Plugin(indigo.PluginBase):
 			
 	#def getDeviceDisplayStateId(self, dev):
 	
+	########################################
+	# Start and stop device communication, device updates
+	########################################
+	
+	def deviceStartComm(self, dev):
+		#self.debugLog(u'deviceStartComm called: %s' % (str(dev)))
+		self.debugLog(u'deviceStartComm called, device %s' % (dev.name))
+		
+		if dev.deviceTypeId == u'notificationPerson':
+			self.personUpdatePresence(dev)
+		
+			self.personList[dev.id] = 'active'
+			
+		if self.extDebug:
+			self.debugLog(u'personList: %s' % (str(self.personList)))
+			self.debugLog(u'personPresentList: %s' % (str(self.personPresentList)))
+			self.debugLog(u'numPersonPresent: %i' % (self.numPersonPresent))
+			self.debugLog(u'categoryList: %s' % (str(self.categoryList)))
+			
+	def deviceStopComm(self, dev):
+		#if self.extDebug: self.debugLog(u'deviceStopComm called: %s' % (str(dev)))
+		self.debugLog(u'deviceStopComm called, device %s' % (dev.name))
+		
+		if dev.deviceTypeId == u'notificationPerson':
+			if dev.id in self.personList:
+				del self.personList	[dev.id]
+			if dev.id in self.personPresentList:
+				del self.personPresentList[dev.id]
+			self.numPersonPresent = len(self.personPresentList)
+			
+		
+		if self.extDebug:
+			self.debugLog(u'personList: %s' % (str(self.personList)))
+			self.debugLog(u'personPresentList: %s' % (str(self.personPresentList)))
+			self.debugLog(u'numPersonPresent: %i' % (self.numPersonPresent))
+			self.debugLog(u'categoryList: %s' % (str(self.categoryList)))
+		
+	def deviceUpdated(self, origDev, newDev):
+		if self.extDebug: self.debugLog(u'deviceUpdated called %s: \n\n\n***origDev:\n %s\n\n\n***newDev:\n %s' % (newDev.name, str(origDev), str(newDev)))
+		else:
+			self.debugLog(u'deviceUpdated called %s' % (newDev.name))
+		
+		if newDev.deviceTypeId == u'notificationPerson':
+			if origDev.pluginProps[u'presenceVariable'] != newDev.pluginProps[u'presenceVariable']:
+				self.personUpdatePresence(newDev)
+				
+		# CHECK if this is necessary, or should be handled by Indigo server somehow
+		if origDev.enabled != newDev.enabled:
+			if newDev.enabled:
+				self.deviceStartComm(newDev)
+			else:
+				self.deviceStopComm(newDev)
+
+	########################################
+	# Change to device, perform necessary actions
+	########################################
+	
+	# 	didDeviceCommPropertyChange(self, origDev, newDev):
+	# 		if self.extDebug: self.debugLog(u'didDeviceCommPropertyChange called')
+	# 		
+	# 		# Check if it is necessary to restart device, return True if that's the case
+	# 		
+	# 		return False
 
 	########################################
 	# Actions defined in MenuItems.xml:
@@ -321,39 +373,12 @@ class Plugin(indigo.PluginBase):
 		except:
 			self.errorLog(u'Could not update last notification time manually')
 			return
-	
-		
+
 	########################################
-	# Update presence state of persons
+	# UI VALIDATION
 	########################################	
-	
-	# errorIfNotSuccessful :	Sometimes may be useful not to throw errors if presence variable is not set/in use
-	
-	def personsUpdatePresence( self, errorIfNotSuccessful = True ):
-	
-		self.debugLog(u'Update presence for "person" devices')
-		i = 0 # Number of persons present
-		# iterate through "person" devices"
-		for dev in indigo.devices.iter(pluginId + u'.notificationPerson'):
-			devProps = dev.pluginProps
-			if self.extDebug: self.debugLog(u'"%s" person notification device pluginProps: %s' % (dev.name, str(devProps)))
-			try:
-				# Set state of presence based on variable given in device config UI
-				presenceVar = indigo.variables[int(devProps['presenceVariable'])]
-				dev.updateStateOnServer('present',presenceVar.getValue(bool, default=True))
-				if presenceVar.getValue(bool, default=True): i = i + 1 # person is present
-				self.debugLog(u'"%s" person device presence set to: %s' % (dev.name, str(presenceVar.getValue(bool, default=True))))
-			except:
-				if errorIfNotSuccessful: self.errorLog(u'Could not get presence of person "%s", please check settings. Presence set to true as default' % dev.name)
-				# Most likely no variable for presence is given, set to being present as it's "safer" to receive notification than not
-				dev.updateStateOnServer('present',True)
-				i = i + 1
-				self.debugLog(u'"%s" person device presence set to true as no real presence could be obtained from variable' % (dev.name))
-		return i
 				
-	########################################
 	# Validate device configuration
-	########################################
 	def validateDeviceConfigUi(self, valuesDict, typeId, devId):
 		#  
 		if self.extDebug: self.debugLog(u"validateDeviceConfigUi: typeId: %s  devId: %s valuesDict: %s" % (typeId, str(devId), str(valuesDict)))
@@ -369,25 +394,116 @@ class Plugin(indigo.PluginBase):
 			
 		return (True, valuesDict)
 		
-	########################################
 	# Validate action configuration
-	########################################
 	def validateActionConfigUi(self, valuesDict, typeId, devId):
 		# 
 		if self.extDebug: self.debugLog(u"validateActionConfigUi: typeId: %s  devId: %s  valuesDict: %s" % (typeId, str(devId), str(valuesDict)))
 		return (True, valuesDict)
 		
-	########################################
 	# Validate plugin prefs changes:
-	####################
 	def validatePrefsConfigUi(self, valuesDict):
 		if self.extDebug: self.debugLog("validatePrefsConfigUI valuesDict: %s" % str(valuesDict))
 		return (True, valuesDict)
 		
 		
+	# Catch changes to config prefs
+	
+	def closedPrefsConfigUi(self, valuesDict, userCancelled):
+		# Plugin prefs
+		self.debug = self.pluginPrefs.get("debugLog", False)
+		self.extDebug = self.pluginPrefs.get(u'extensiveDebug', False)
+		self.pluginLog = self.pluginPrefs.get("pluginLog", True)
+		if self.pluginPrefs.get(u'varFolderName','Notification plugin log') != self.varFolderName:
+			#Variable folder name has changed, restart plugin
+			indigo.server.log(u'Variable folder name has changed, plugin will restart')
+			plugin = indigo.server.getPlugin(pluginId)
+			if plugin.isEnabled():
+   				plugin.restart(waitUntilDone=False)
+		self.varFolderName = self.pluginPrefs.get(u'varFolderName','Notification plugin log')
+		self.alwaysUseVariables = self.pluginPrefs.get(u'alwaysUseVariables',False)
+		
+		# DO VALIDATION
+		self.pluginConfigErrorState = False
+		
+
 	########################################
+	# CALLBACK METHODS
+	########################################
+	
+	# Devices.XML notificationPerson
+	def clearSelectionPresenceVariable(self, valuesDict, typeId, devId):
+		valuesDict['presenceVariable'] = ''
+		return valuesDict
+	def clearSelectionLogVariable(self, valuesDict, typeId, devId):
+		valuesDict['logVariable'] = ''
+		return valuesDict
+		
+		
+	########################################
+	# OTHER FUNCTIONS
+	###################
+	
+	
 	# Validate e-mail addres:
-	####################
 	def validateEmail(self, emailStr):
 		# FIX
 		return True
+		
+	
+	# Update presence state of persons
+	
+	# errorIfNotSuccessful :	Sometimes may be useful not to throw errors if presence variable is not set/in use
+	
+# 	def personsUpdatePresence( self, errorIfNotSuccessful = True ):
+# 	
+# 		self.debugLog(u'Update presence for "person" devices')
+# 		i = 0 # Number of persons present
+# 		# iterate through "person" devices"
+# 		for dev in indigo.devices.iter(pluginId + u'.notificationPerson'):
+# 			devProps = dev.pluginProps
+# 			if self.extDebug: self.debugLog(u'"%s" person notification device pluginProps: %s' % (dev.name, str(devProps)))
+# 			try:
+# 				# Set state of presence based on variable given in device config UI
+# 				presenceVar = indigo.variables[int(devProps['presenceVariable'])]
+# 				dev.updateStateOnServer('present',presenceVar.getValue(bool, default=True))
+# 				if presenceVar.getValue(bool, default=True): i = i + 1 # person is present
+# 				self.debugLog(u'"%s" person device presence set to: %s' % (dev.name, str(presenceVar.getValue(bool, default=True))))
+# 			except:
+# 				if errorIfNotSuccessful: self.errorLog(u'Could not get presence of person "%s", please check settings. Presence set to true as default' % dev.name)
+# 				# Most likely no variable for presence is given, set to being present as it's "safer" to receive notification than not
+# 				dev.updateStateOnServer('present',True)
+# 				i = i + 1
+# 				self.debugLog(u'"%s" person device presence set to true as no real presence could be obtained from variable' % (dev.name))
+# 		return i
+
+	def personUpdatePresence( self, dev, errorIfNotSuccessful = True ):
+		if self.extDebug: self.debugLog(u'personUpdatePresence called')
+	
+		devProps = dev.pluginProps
+		if self.extDebug: self.debugLog(u'"%s" person notification device pluginProps: %s' % (dev.name, str(devProps)))
+
+		# Check if presence variable is set
+		if len(devProps[u'presenceVariable']) > 0:
+			try:
+				# Get value of indigo variable
+				presenceVar = indigo.variables[int(devProps[u'presenceVariable'])]
+				dev.updateStateOnServer(u'present', presenceVar.getValue(bool, default=True))
+				self.debugLog(u'"%s" person device presence set to: %s' % (dev.name, str(presenceVar.getValue(bool, default=True))))
+			except:
+				if errorIfNotSuccessful: self.errorLog(u'Could not get presence of person "%s", please check settings. Presence set to true as default' % dev.name)
+				# set presence to true, safest choice
+				dev.updateStateOnServer(u'present',True)
+				self.debugLog(u'"%s" person device presence set to true as no real presence could be obtained from variable' % (dev.name))
+			dev.updateStateOnServer(u'usePresence', True)
+		else:
+			# Presence variable not set
+			self.debugLog(u'"%s" person device presence has no presence variable specified, setting presence to unknown' % (dev.name))
+			dev.updateStateOnServer(u'usePresence', False)
+			dev.updateStateOnServer(u'present',None)
+			
+		if dev.states[u'present']:
+			self.personPresentList[dev.id] = u'present'
+		elif dev.id in self.personPresentList:
+			del self.personPresentList[dev.id]
+		self.numPersonPresent = len(self.personPresentList)
+		

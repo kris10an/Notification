@@ -19,7 +19,12 @@ Enter your information regarding the person to receive notifications</Label>
 				<List class="indigo.variables" filter=""/>
 			</Field>
 			<Field type="label" id="personVariableGuidance" alignWithControl="true">
-				<Label>Select an (optional) variable that is true when person is present. If presence is not activated in notification category this will not have any effect</Label>
+				<Label>Select an (optional) variable that is true when person is present. If presence is not activated in notification category this will not have any effect. If no variable is selected, person will always be notified.</Label>
+			</Field>
+			<Field id="clearPresenceVar" type="button" tooltip="Click to clear selection">
+				<Label></Label>
+				<Title>Clear selection</Title>
+				<CallbackMethod>clearSelectionPresenceVariable</CallbackMethod>
 			</Field>
 			<Field type="label" id="introNotification">
 				<Label>
@@ -42,8 +47,12 @@ Notification delivery options</Label>
 				<List class="indigo.variables" filter=""/>
 			</Field>
 			<Field type="label" id="personLogVariableGuidance" alignWithControl="true">
-				<Label>When specified, the plugin will write the last notification to that variable
-				</Label>
+				<Label>When specified, the plugin will write the last notification to that variable</Label>
+			</Field>
+			<Field id="clearLogVar" type="button" tooltip="Click to clear selection">
+				<Label></Label>
+				<Title>Clear selection</Title>
+				<CallbackMethod>clearSelectionLogVariable</CallbackMethod>
 			</Field>
 		</ConfigUI>
 		<States>
@@ -68,12 +77,17 @@ Notification delivery options</Label>
 				<ControlPageLabel>Last notification category</ControlPageLabel>
 			</State>
 			<State id="present">
-				<ValueType>Boolean</ValueType>
-				<TriggerLabel>Presence</TriggerLabel>
+				<ValueType boolType="YesNo">Boolean</ValueType>
+				<TriggerLabel>Present</TriggerLabel>
 				<ControlPageLabel>Person is present</ControlPageLabel>
 			</State>
+			<State id="usePresence">
+				<ValueType>Boolean</ValueType>
+				<TriggerLabel>Presence detection enabled</TriggerLabel>
+				<ControlPageLabel>Presence detection enabled</ControlPageLabel>
+			</State>
 		</States>
-		<UiDisplayStateId>lastNotificationTime</UiDisplayStateId>
+		<UiDisplayStateId>present</UiDisplayStateId>
 	</Device>
 	<Device type="custom" id="notificationCategory">
 		<Name>Notification category</Name>
