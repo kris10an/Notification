@@ -52,10 +52,10 @@ class Plugin(indigo.PluginBase):
 		self.logFileDateFormat = u'%Y-%m-%d'
 		
 		# Device and variable lists
-		self.personList = {}
-		self.personPresentList = {}
-		self.categoryList = {}
-		#self.presenceVariableList = {}
+		self.personList = {} #dev.id : string
+		self.personPresentList = {} # dev.id : string
+		self.categoryList = {} # dev.id : string
+		self.presenceVariableList = {} #var.id : dev.id
 		self.numPersonPresent = 0
 
 	########################################
@@ -88,6 +88,9 @@ class Plugin(indigo.PluginBase):
 			else:
 				# Find ID of existing folder
 				self.varFolderId = indigo.variables.folders[self.varFolderName]
+				
+		self.debugLog(u'Subscribing to variable changes')
+		indigo.variables.subscribeToChanges()
 
 		self.debugLog(u'Notification plugin started')
 
@@ -117,7 +120,7 @@ class Plugin(indigo.PluginBase):
 	#def getDeviceDisplayStateId(self, dev):
 	
 	########################################
-	# Start and stop device communication, device updates
+	# DEVICES Start and stop device communication, device updates
 	########################################
 	
 	def deviceStartComm(self, dev):
@@ -126,14 +129,14 @@ class Plugin(indigo.PluginBase):
 		
 		if dev.deviceTypeId == u'notificationPerson':
 			self.personUpdatePresence(dev)
-		
-			self.personList[dev.id] = 'active'
+			self.personList[dev.id] = 'active'		
 			
 		if self.extDebug:
 			self.debugLog(u'personList: %s' % (str(self.personList)))
 			self.debugLog(u'personPresentList: %s' % (str(self.personPresentList)))
 			self.debugLog(u'numPersonPresent: %i' % (self.numPersonPresent))
 			self.debugLog(u'categoryList: %s' % (str(self.categoryList)))
+			self.debugLog(u'presenceVariableList: %s' % (str(self.presenceVariableList)))
 			
 	def deviceStopComm(self, dev):
 		#if self.extDebug: self.debugLog(u'deviceStopComm called: %s' % (str(dev)))
@@ -145,6 +148,7 @@ class Plugin(indigo.PluginBase):
 			if dev.id in self.personPresentList:
 				del self.personPresentList[dev.id]
 			self.numPersonPresent = len(self.personPresentList)
+			self.debugLog(u'deviceStopComm update numPersonPresent: %i' % (self.numPersonPresent))
 			
 		
 		if self.extDebug:
@@ -154,6 +158,8 @@ class Plugin(indigo.PluginBase):
 			self.debugLog(u'categoryList: %s' % (str(self.categoryList)))
 		
 	def deviceUpdated(self, origDev, newDev):
+		# call the base's implementation first just to make sure all the right things happen elsewhere
+		indigo.PluginBase.deviceUpdated(self, origDev, newDev)
 		if self.extDebug: self.debugLog(u'deviceUpdated called %s: \n\n\n***origDev:\n %s\n\n\n***newDev:\n %s' % (newDev.name, str(origDev), str(newDev)))
 		else:
 			self.debugLog(u'deviceUpdated called %s' % (newDev.name))
@@ -179,6 +185,25 @@ class Plugin(indigo.PluginBase):
 	# 		# Check if it is necessary to restart device, return True if that's the case
 	# 		
 	# 		return False
+	
+	########################################
+	# VARIABLES
+	########################################
+	
+	def variableUpdated(self, origVar, newVar):
+		
+		if origVar.id in self.presenceVariableList:
+			# call the base's implementation first just to make sure all the right things happen elsewhere
+			# do it within if to save resources (??)
+			indigo.PluginBase.variableUpdated(self, origVar, newVar)
+			self.debugLog(u'variableUpdated called, %s' % (origVar.name))
+			try:
+				if self.presenceVariableList[origVar.id] in self.personList:
+					dev = indigo.devices[self.presenceVariableList[origVar.id]]
+					self.personUpdatePresence(dev)
+					self.debugLog(u'variableUpdated called updatePersonPresence for "%s"' % (dev.name))
+			except:
+				self.errorLog(u'Could not find device to update presence for, variable "%s"' % (origVar.name))
 
 	########################################
 	# Actions defined in MenuItems.xml:
@@ -489,6 +514,7 @@ class Plugin(indigo.PluginBase):
 				presenceVar = indigo.variables[int(devProps[u'presenceVariable'])]
 				dev.updateStateOnServer(u'present', presenceVar.getValue(bool, default=True))
 				self.debugLog(u'"%s" person device presence set to: %s' % (dev.name, str(presenceVar.getValue(bool, default=True))))
+				self.presenceVariableList[presenceVar.id] = dev.id
 			except:
 				if errorIfNotSuccessful: self.errorLog(u'Could not get presence of person "%s", please check settings. Presence set to true as default' % dev.name)
 				# set presence to true, safest choice
@@ -506,4 +532,7 @@ class Plugin(indigo.PluginBase):
 		elif dev.id in self.personPresentList:
 			del self.personPresentList[dev.id]
 		self.numPersonPresent = len(self.personPresentList)
+		
+		# refresh Indigo, not sure if this is necessary?
+		dev.stateListOrDisplayStateIdChanged()
 		
