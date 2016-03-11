@@ -129,8 +129,8 @@ Delivery options</Label>
 					<Option value="1 month">Once per month (30 days)</Option>
 				</List>
 			</Field>
-			<Field type="label" id="infoSendEvery" visibleBindingId="sendEvery" visibleBindingValue="1 hour,12 hours,1 day,1 week,1 month" alignWithControl="true">
-				<Label>Notification category will not be repeated for the chosen interval. Note that this applies to all notifications of this category, it is normally better to specify this on the notification action level than here.</Label>
+			<Field type="label" id="infoSendEvery" alignWithControl="true" fontSize="small"> <!-- STOPPED working for some reason: visibleBindingId="sendEvery" visibleBindingValue="1 hour,12 hours,1 day,1 week,1 month" -->
+				<Label>Notification category will not be repeated for the chosen interval. Note that this applies to all notifications using this category, it is normally better to specify this on the notification action level than here.</Label>
 			</Field>
 			<Field type="list" id="presentDeliveryMethod" defaultValue="email,growl" rows="2">
 				<Label>Deliver to present
@@ -141,6 +141,9 @@ persons by:</Label>
 				<Label>Deliver to non-present
 persons by:</Label>
 				<List class="self" method="personalDeliveryMethodsList"/>
+			</Field>
+			<Field type="label" id="growlPersonalGuidance" alignWithControl="true" fontSize="small">
+				<Label>Note that only growl types selected below will be sent</Label>
 			</Field>
 			<Field type="list" id="nonPersonalDeliveryMethod" defaultValue="log,notificationLog,speak" rows="3">
 				<Label>Log and speech:</Label>
@@ -158,7 +161,7 @@ persons by:</Label>
 				<Label>Always deliver to:
 				</Label>
 			</Field>
-			<Field type="label" id="alwaysEmailGuidance" alignWithControl="true">
+			<Field type="label" id="alwaysEmailGuidance" alignWithControl="true" fontSize="small">
 				<Label>Always deliver notification to these addresses regardless of other settings (presence etc.). Syntax: email:john@doe.com,email:jack@email.com</Label>
 			</Field>
 			<Field type="label" id="introLog" visibleBindingId="nonPersonalDeliveryMethod" visibleBindingValue="log,notificationLog">

@@ -166,9 +166,9 @@ class Plugin(indigo.PluginBase):
 	def deviceUpdated(self, origDev, newDev):
 		# call the base's implementation first just to make sure all the right things happen elsewhere
 		indigo.PluginBase.deviceUpdated(self, origDev, newDev)
-		if self.extDebug: self.debugLog(u'deviceUpdated called %s: \n\n\n***origDev:\n %s\n\n\n***newDev:\n %s' % (newDev.name, str(origDev), str(newDev)))
-		else:
-			self.debugLog(u'deviceUpdated called %s' % (newDev.name))
+		#if self.extDebug: self.debugLog(u'deviceUpdated called %s: \n\n\n***origDev:\n %s\n\n\n***newDev:\n %s' % (newDev.name, str(origDev), str(newDev)))
+		#else:
+		self.debugLog(u'deviceUpdated called %s' % (newDev.name))
 		
 		if newDev.deviceTypeId == u'notificationPerson':
 			if origDev.pluginProps[u'presenceVariable'] != newDev.pluginProps[u'presenceVariable']:
@@ -184,11 +184,14 @@ class Plugin(indigo.PluginBase):
 				self.deviceStartComm(newDev)
 			else:
 				self.deviceStopComm(newDev)
+				
+		# FIX implement logic for change of device type?
 
 	########################################
 	# Change to device, perform necessary actions
 	########################################
 	
+	# FIX should this be implemented or not?@+
 	# 	didDeviceCommPropertyChange(self, origDev, newDev):
 	# 		if self.extDebug: self.debugLog(u'didDeviceCommPropertyChange called')
 	# 		
@@ -256,15 +259,21 @@ class Plugin(indigo.PluginBase):
 		send = False # whether or not to send notification
 		sent = False # whether or not notification has actually been sent
 		
-		# Check first if at least one method for sending is selected, and not only logs
-		if u'email' in catProps[u'deliveryMethod'] or u'growl' in catProps[u'deliveryMethod']:
+		"""# Check first if at least one method for sending is selected, and not only logs
+		if len(catProps[u'presentDeliveryMethod']) > 0 or len(catProps[u'nonPresentDeliveryMethod']) > 0:
 			sendSelected = True
 			self.debugLog(u'At least one method for sending out notification selected (excluding logs)')
+			if self.extDebug:
+				self.debugLog(u'presentDeliveryMethod:\n%s' % str(catProps[u'presentDeliveryMethod']))
+				self.debugLog(u'nonPresentDeliveryMethod:\n%s' % str(catProps[u'nonPresentDeliveryMethod']))
 		else: 
 			sendSelected = False
-			self.debugLog(u'No methods for sending out notification selected (excluding logs)')
+			self.debugLog(u'No methods for sending out notification selected (excluding logs), will not send out notification')
 		
-		if(len(catStates[u'lastNotificationTime']) > 0 and sendSelected):
+		if sendSelected:"""
+		
+		# Check on category level whether to send, based on last notification time
+		if(len(catStates[u'lastNotificationTime']) > 0):
 			if catProps[u'sendEvery'] == u'always':
 				# Set to always send
 				send = True
@@ -279,12 +288,12 @@ class Plugin(indigo.PluginBase):
 				except:
 					lastSent = strvartime.strToTime(u'2000-01-01 00:00:00')	
 					self.debugLog(u'Last notification time of category could not be obtatined, set to year 2000')
-				
+			
 				#Determine if enough time has passed to send it again
 				if not catProps[u'sendEvery'] in intervalToSeconds:
 					self.errorLog(u'Invalid setting for delivery interval for category "%s". Check settings. Notification skipped.\nNotification text: %s' % (categoryDev.name, actionProps[u'text']))
 					return
-					
+				
 				if strvartime.timeDiff(lastSent, 'now', 'seconds') >= intervalToSeconds[catProps[u'sendEvery']]:
 					send = True
 					self.debugLog(u'Notification category set to send every %s, Last notification sent %s. Will send notification now' % (catProps[u'sendEvery'], strvartime.prettyDate(lastSent)))
@@ -293,7 +302,7 @@ class Plugin(indigo.PluginBase):
 		else:
 			self.debugLog(u'Notification category has never been sent before, will send now')
 			send = True
-			
+		
 		# Check on action level, that notification is to be sent (is not within specified interval frequency)
 		variableNameStr = self.notificationVarPrefix + actionProps['identifier']
 		if actionProps[u'sendEvery'] != u'always' and send: # a delivery frequency is set, need to check last time
@@ -315,13 +324,15 @@ class Plugin(indigo.PluginBase):
 			self.debugLog(u'Notification action set to always send, no need to check time of last sent notification')
 		else:
 			self.debugLog(u'Determined by notification category last sent and set frequency that notification will not be sent, no need to check last sent time on action level')
-		
+	
 		# Start sending notification
 		growlsToSend = catProps[u'growlTypes'] # List given by notification category, will remove later based on presence
 		emailsToSend = [] # Opposite logic, include later based on presence
-		
+		notifyVars = []
+		if self.extDebug: self.debugLog(u'growlsToSend:\n%s' % str(growlsToSend))
+	
 		if send:
-									
+								
 			#Make sure presence for persons is up to date
 			#self.debugLog(u'Notification category configured to use presence, updating presence status of persons')
 			#numPresent = self.personsUpdatePresence(True)
@@ -329,7 +340,73 @@ class Plugin(indigo.PluginBase):
 			numPresent = self.numPersonPresent
 			self.debugLog(u'%i persons indicated as present' % (numPresent))
 			
-			if numPresent == 0 and catProps[u'notifyPresent'] and not catProps[u'notifyAllIfNonePresent']:
+			# Check if 'all' is selected as recipient
+			if u'all' in catProps[u'deliverTo']:
+				self.debugLog(u'All persons selected for delivery')
+				personsList = self.personList
+			else:
+				personsList = catProps[u'deliverTo']
+				
+			if self.extDebug: self.debugLog(u'personsList: %s' % str(personsList))
+			
+			# Determine who to send out notifications to
+			for personId in personsList:
+				try:
+					personDev = indigo.devices[int(personId)]
+				except:
+					self.errorLog(u'Could not get person device "%i", delivery of notification could not be retrieved.\nNotification text:%s' % (int(personId), actionProps[u'text']))
+					continue
+					
+				present = personDev.states[u'present']
+				
+				# Remove growl/push notification from growl list, opposite logic from email
+				if (not u'growl' in catProps[u'presentDeliveryMethod'] and not u'growl' in catProps[u'nonPresentDeliveryMethod']) or ((u'growl' in catProps[u'presentDeliveryMethod'] and not present) and (not u'growl' in catProps[u'nonPresentDeliveryMethod'])) or ((u'growl' in catProps[u'nonPresentDeliveryMethod']) and (not u'growl' in catProps[u'presentDeliveryMethod']) and present):
+					# Logic:
+						# If no growl delivery is selected
+						# OR
+						# Delivery to present persons is selected, but person is NOT present AND delivery to non-present persons is NOT selected
+						# OR 
+						# Delivery to non-present persons is selected AND Delivery to present persons is NOT selected AND person is present
+					for growlType in personDev.pluginProps[u'growlTypes']:
+						# if growl type is listed in category settings, send
+						if growlType in growlsToSend:
+							self.debugLog(u'Removing growl notification type "%s" for "%s", person is present: %r' % (growlType, personDev.name, present))
+							growlsToSend.remove(growlType)
+				elif self.extDebug: self.debugLog(u'Growl logic not triggered for person "%s"' % (personDev.name))
+							
+				# Add e-mail
+				if (present and u'email' in catProps[u'presentDeliveryMethod']) or (not present and u'email' in catProps[u'nonPresentDeliveryMethod']):
+					if len(personDev.pluginProps[u'email']) > 0:
+						if self.validateEmail(personDev.pluginProps[u'email']):
+							emailsToSend.append(personDev.pluginProps[u'email'])
+							self.debugLog(u'Adding "%s" to e-mail recipients, e-mail address: %s' % (personDev.name, personDev.pluginProps[u'email']))	
+						else:
+							self.errorLog(u'Invalid e-mail address specified for "%s": %s' % (personDev.name, personDev.pluginProps[u'email']))
+					else:
+						self.debugLog(u'No e-mail address specified for "%s"' % (personDev.name))
+				elif self.extDebug: self.debugLog(u'Email logic not triggered for person "%s"' % (personDev.name))
+					
+				# Add variable
+				if (present and u'variable' in catProps[u'presentDeliveryMethod']) or (not present and u'variable' in catProps[u'nonPresentDeliveryMethod']):
+					if len(personDev.pluginProps[u'logVariable']) > 0:
+						try:
+							notifyVar = indigo.variables[int(personDev.pluginProps[u'logVariable'])]
+							self.debugLog(u'Adding variable notification for "%s", variable: %s' % (personDev.name, notifyVar.name))
+							notifyVars.append(notifyVar.id)
+						except:
+							self.errorLog(u'Could not get notification variable specified for "%s": %s' % (personDev.name, personDev.pluginProps[u'logVariable']))
+					else:
+						self.debugLog(u'No variable for notification specified for "%s"' % (personDev.name))
+				elif self.extDebug: self.debugLog(u'Variable logic not triggered for person "%s"' % (personDev.name))
+						
+			if self.extDebug:
+				self.debugLog(u'growlsToSend:\n%s' % str(growlsToSend))
+				self.debugLog(u'emailsToSend:\n%s' % str(emailsToSend))
+				self.debugLog(u'notifyVars:\n%s' % str(notifyVars))
+							
+				
+		
+			"""if numPresent == 0 and catProps[u'notifyPresent'] and not catProps[u'notifyAllIfNonePresent']:
 				self.debugLog(u'Notify present only chosen, 0 persons will be notified as none are present')
 			elif numPresent == 0 and catProps[u'notifyPresent'] and catProps[u'notifyAllIfNonePresent']:
 				self.debugLog(u'Notify all if none are present chosen, none are present -> all will be notified')
@@ -337,7 +414,7 @@ class Plugin(indigo.PluginBase):
 				self.debugLog(u'Notification based on presence disabled, all will be notified')
 			elif catProps[u'notifyPresent']:
 				self.debugLog(u'There are %i people present, those will be notified' % (numPresent))
-		
+	
 			# Determine who to deliver to
 			for person in catProps[u'deliverTo']:
 				#if self.extDebug: self.debugLog(u'Person given by category: %s' % (str(person)))
@@ -361,7 +438,7 @@ class Plugin(indigo.PluginBase):
 								growlsToSend.remove(gt)
 								self.debugLog(u'Removed growl type %s from notifications, person "%s"' % (gt, personDev.name))
 				else:
-					self.debugLog(u'Person device "%s" has been disabled or is invalid, skipping notification for that person' % (personDev.name))		
+					self.debugLog(u'Person device "%s" has been disabled or is invalid, skipping notification for that person' % (personDev.name))	"""	
 		
 		# Update notification action variable if not sendEvery or if set in plugin config
 		if actionProps[u'sendEvery'] != u'always' or self.alwaysUseVariables:
@@ -507,7 +584,8 @@ class Plugin(indigo.PluginBase):
 		self.debugLog(u'personalDeliveryMethodsList called')
 		myArray = [
 			(u"email",u"E-mail"),
-			(u"growl",u"Push (Growl)")]
+			(u"growl",u"Push (Growl)"),
+			(u"variable","Write to variable")]
 		return myArray
 		
 	def personDeviceListIncludingAll(self, filter="", valuesDict=None, typeId="", targetId=0):
@@ -594,4 +672,13 @@ class Plugin(indigo.PluginBase):
 		
 		# refresh Indigo, not sure if this is necessary?
 		dev.stateListOrDisplayStateIdChanged()
+		
+	def notifySendGrowl():
+		pass
+		
+	def notifySendEmail():
+		pass
+		
+	def notifyToVariable():
+		pass
 		
