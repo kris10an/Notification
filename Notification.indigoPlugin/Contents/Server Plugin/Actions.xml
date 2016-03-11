@@ -5,17 +5,30 @@
 		<Name>Notification (notification plugin)</Name>
 		<CallbackMethod>sendNotification</CallbackMethod>
 		<ConfigUI>
+			<Field type="label" id="introspace">
+				<Label> </Label>
+			</Field>
 			<Field type="textfield" id="text">
-				<Label>Notification text</Label>
+				<Label>Notification
+text:
+
+
+
+
+
+</Label>
+			</Field>
+			<Field type="label" id="textGuidance" alignWithControl="true">
+				<Label>(alt+enter for line break)</Label>
 			</Field>
 			<Field type="textfield" id="title">
-				<Label>Notification title</Label>
+				<Label>Title:</Label>
 			</Field>
 			<Field type="label" id="titleGuidance" alignWithControl="true">
 				<Label>Subject for e-mail, title for growl notification. Log type from category will be used if left blank</Label>
 			</Field>
 			<Field type="textfield" id="identifier">
-				<Label>Unique identifier</Label>
+				<Label>Identifier:</Label>
 			</Field>
 			<Field type="label" id="identifierGuidance" alignWithControl="true">
 				<Label>You may specify an (optional) identifier for the notification which allows you to do the following:
@@ -23,7 +36,8 @@
 2) Not resend the notification for a given interval (below):</Label>
 			</Field>
 			<Field type="menu" id="sendEvery" defaultValue="always">
-				<Label>Delivery frequency:</Label>
+				<Label>Delivery
+frequency:</Label>
 				<List>
 					<Option value="always">Always</Option>
 					<Option value="1 hour">Once per hour</Option>
@@ -42,17 +56,18 @@ Override category settings (optional):</Label>
 			</Field>
 			<Field id="simpleSeparator1" type="separator"/>
 			<Field type="label" id="overrideGuidance" alignWithControl="true">
-				<Label>If you leave below fields blank, the settings from the notification will be used. If it is set here, the settings in category is overridden.</Label>
+				<Label>If you leave below fields blank, the settings from the notification category will be used. If it is set here, the settings in category is overridden.</Label>
 			</Field>
 			<Field type="textfield" id="recipients">
-				<Label>Additional recipients</Label>
+				<Label>Additional
+recipients:</Label>
 			</Field>
 			<Field type="label" id="alwaysEmailGuidance" alignWithControl="true">
 				<Label>Specified recipients in addition to the ones from category
 Syntax: email:john@doe.com,email:mrjones@hotmail.com</Label>
 			</Field>
 			<Field type="menu" id="speak" defaultValue="default">
-				<Label>Speak notification:</Label>
+				<Label>Speak:</Label>
 				<List>
 					<Option value="default">Use category setting</Option>
 					<Option value="true">Yes</Option>
@@ -60,7 +75,7 @@ Syntax: email:john@doe.com,email:mrjones@hotmail.com</Label>
 				</List>
 			</Field>
 			<Field type="menu" id="log" defaultValue="default">
-				<Label>Notification to Indigo log:</Label>
+				<Label>Indigo log:</Label>
 				<List>
 					<Option value="default">Use category setting</Option>
 					<Option value="true">Yes</Option>

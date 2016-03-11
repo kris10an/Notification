@@ -95,25 +95,29 @@ Notification delivery options</Label>
 			<!--<Field type="checkbox" id="enabled" defaultValue="true">
 				<Label>Enable category:</Label>
 				<Description>Temporarily disable this category etc.</Description>
-			</Field>-->
+			</Field>
 			<Field type="label" id="intro">
 				<Label>
 Presence options</Label>
 			</Field>
-			<Field id="simpleSeparator0" type="separator"/>
-			<Field type="checkbox" id="notifyPresent" defaultValue="false">
-				<Label>Notify present only:</Label>
-				<Description>Notify only those that are present, others are ignored</Description>
-			</Field>
-			<Field type="checkbox" id="notifyAllIfNotPresent" defaultValue="false">
-				<Label>Notify all if none present:</Label>
-				<Description>Notify all recipients if none are present</Description>
-			</Field>
+			<Field id="simpleSeparator0" type="separator"/>-->
 			<Field type="label" id="introNotification">
 				<Label>				
-How to deliver notification</Label>
+Delivery options</Label>
 			</Field>
 			<Field id="simpleSeparator1" type="separator"/>
+			<!--<Field type="checkbox" id="notifyPresent" defaultValue="false">
+				<Label>Notify present only:</Label>
+				<Description>Notify only those that are present, others are ignored</Description>
+			</Field>-->
+			<Field type="list" id="deliverTo" rows="4" defaultValue="all">
+				<Label>Recipients:</Label>
+				<List class="self" method="personDeviceListIncludingAll"/>
+			</Field>
+			<Field type="checkbox" id="notifyAllIfNonePresent" defaultValue="false">
+				<Label>None present:</Label>
+				<Description>Notify all recipients if none are present</Description>
+			</Field>
 			<Field type="menu" id="sendEvery" defaultValue="always">
 				<Label>Delivery frequency:</Label>
 				<List>
@@ -128,36 +132,66 @@ How to deliver notification</Label>
 			<Field type="label" id="infoSendEvery" visibleBindingId="sendEvery" visibleBindingValue="1 hour,12 hours,1 day,1 week,1 month" alignWithControl="true">
 				<Label>Notification category will not be repeated for the chosen interval. Note that this applies to all notifications of this category, it is normally better to specify this on the notification action level than here.</Label>
 			</Field>
-			<Field type="checkbox" id="log" defaultValue="true">
+			<Field type="list" id="presentDeliveryMethod" defaultValue="email,growl" rows="2">
+				<Label>Deliver to present
+persons by:</Label>
+				<List class="self" method="personalDeliveryMethodsList"/>
+			</Field>
+			<Field type="list" id="nonPresentDeliveryMethod" defaultValue="" rows="2">
+				<Label>Deliver to non-present
+persons by:</Label>
+				<List class="self" method="personalDeliveryMethodsList"/>
+			</Field>
+			<Field type="list" id="nonPersonalDeliveryMethod" defaultValue="log,notificationLog,speak" rows="3">
+				<Label>Log and speech:</Label>
+				<List class="self" method="nonPersonalDeliveryMethodsList"/>
+			</Field>
+			<!--<Field type="checkbox" id="log" defaultValue="true">
 				<Label>Indigo log:</Label>
 				<Description>Write notification to Indigo log</Description>
 			</Field>
 			<Field type="checkbox" id="notificationLog" defaultValue="true">
 				<Label>Notification log:</Label>
 				<Description>Write notification to plugin log file</Description>
+			</Field>-->
+			<Field type="textfield" id="alwaysDeliverEmail">
+				<Label>Always deliver to:
+				</Label>
 			</Field>
-			<Field type="textfield" id="logType">
-				<Label>Log type</Label>
+			<Field type="label" id="alwaysEmailGuidance" alignWithControl="true">
+				<Label>Always deliver notification to these addresses regardless of other settings (presence etc.). Syntax: email:john@doe.com,email:jack@email.com</Label>
 			</Field>
-			<Field type="checkbox" id="logAsError" defaultValue="false">
+			<Field type="label" id="introLog" visibleBindingId="nonPersonalDeliveryMethod" visibleBindingValue="log,notificationLog">
+				<Label>				
+Log options</Label>
+			</Field>
+			<Field id="simpleSeparator2" type="separator" visibleBindingId="nonPersonalDeliveryMethod" visibleBindingValue="log,notificationLog"/>
+			<Field type="textfield" id="logType" visibleBindingId="nonPersonalDeliveryMethod" visibleBindingValue="log,notificationLog">
+				<Label>Log type / title:</Label>
+			</Field>
+			<Field type="checkbox" id="logAsError" defaultValue="false" visibleBindingId="nonPersonalDeliveryMethod" visibleBindingValue="log,notificationLog">
 				<Label>Log as error:</Label>
 				<Description>Log notification as error code</Description>
 			</Field>
-			<Field type="checkbox" id="email" defaultValue="true">
+			<!--<Field type="checkbox" id="email" defaultValue="true">
 				<Label>E-mail:</Label>
 				<Description>Deliver notification as e-mail</Description>
-			</Field>
-			<Field type="textfield" id="alwaysDeliverEmail">
-				<Label>Always deliver to e-mail:</Label>
-			</Field>
-			<Field type="label" id="alwaysEmailGuidance" alignWithControl="true">
-				<Label>Always deliver notification to this e-mail regardless of other settings (presence etc.)</Label>
 			</Field>
 			<Field type="checkbox" id="push" defaultValue="false">
 				<Label>Push:</Label>
 				<Description>Push notification (growl)</Description>
+			</Field>-->
+			<Field type="label" id="introGrowl">
+				<Label>				
+Growl options</Label>
 			</Field>
-			<Field type="menu" id="growlPriority" defaultValue="0" visibleBindingId="push" visibleBindingValue="true">
+			<Field id="simpleSeparator3" type="separator"/>
+			<Field type="list" id="growlTypes" rows="4">
+				<Label>Growl notification
+types:</Label>
+				<List class="com.perceptiveautomation.indigoplugin.growl" filter="" method="getNotificationList"/>
+			</Field>			
+			<Field type="menu" id="growlPriority" defaultValue="0">
 				<Label>Growl priority:</Label>
 				<List>
 					<Option value="-2">-2</Option>
@@ -167,39 +201,36 @@ How to deliver notification</Label>
 					<Option value="2">2</Option>
 				</List>
 			</Field>
-			<Field type="checkbox" id="growlSticky" defaultValue="false" visibleBindingId="push" visibleBindingValue="true">
+			<Field type="checkbox" id="growlSticky" defaultValue="false">
 				<Label>Growl sticky:</Label>
 				<Description>Make growl notification sticky</Description>
 			</Field>
-			<Field type="checkbox" id="speak" defaultValue="false">
+			<!--<Field type="checkbox" id="speak" defaultValue="false">
 				<Label>Speech:</Label>
 				<Description>Speak notification</Description>
+			</Field>-->
+			<Field type="label" id="introSpeech" visibleBindingId="nonPersonalDeliveryMethod" visibleBindingValue="speak">
+				<Label>				
+Speech options (action groups)</Label>
 			</Field>
-			<Field type="menu" id="beforeSpeakActionGroup" visibleBindingId="speak" visibleBindingValue="true">
-				<Label>Before speech action group:</Label>
+			<Field id="simpleSeparator" type="separator" visibleBindingId="nonPersonalDeliveryMethod" visibleBindingValue="speak"/>
+			<Field type="menu" id="beforeSpeakActionGroup" visibleBindingId="nonPersonalDeliveryMethod" visibleBindingValue="speak">
+				<Label>Before speech AG:</Label>
 				<List class="indigo.actionGroups" filter=""/>
 			</Field>
-			<Field type="menu" id="afterSpeakActionGroup" visibleBindingId="speak" visibleBindingValue="true">
-				<Label>After speech action group:</Label>
+			<Field type="menu" id="afterSpeakActionGroup" visibleBindingId="nonPersonalDeliveryMethod" visibleBindingValue="speak">
+				<Label>After speech AG:</Label>
 				<List class="indigo.actionGroups" filter=""/>
 			</Field>
-			<Field type="label" id="introPersons">
-				<Label>			
-To whom to deliver notification</Label>
+			<Field id="categoryClearActionGroup" type="button" tooltip="Click to clear selection" visibleBindingId="nonPersonalDeliveryMethod" visibleBindingValue="speak">
+				<Label></Label>
+				<Title>Clear action groups selection</Title>
+				<CallbackMethod>clearSelectionCategoryActionGroups</CallbackMethod>
 			</Field>
-			<Field id="simpleSeparator2" type="separator"/>
-			<Field type="list" id="deliverTo" rows="4">
-				<Label>Deliver to persons:</Label>
-				<List class="indigo.devices" filter="com.kris10an.indigoplugin.notification.notificationPerson"/>
-			</Field>
-			<Field type="list" id="growlTypes" rows="6" visibleBindingId="push" visibleBindingValue="true">
-				<Label>Growl notification types:</Label>
-				<List class="com.perceptiveautomation.indigoplugin.growl" filter="" method="getNotificationList"/>
-			</Field>
-			<Field type="label" id="infoPersons" visibleBindingId="notifyPresent" visibleBindingValue="true">
+			<!--<Field type="label" id="infoPersons" visibleBindingId="notifyPresent" visibleBindingValue="true" fontColor="orange">
 				<Label>
-Please remember that persons may be omitted from notification due to not being present. Also if one or more growl notification types is connected to a person, this will be omitted if that person is not present</Label>
-			</Field>
+Please remember that persons may be omitted from notification due to not being present. Also if one or more growl notification types is connected to a person, these will be omitted if that person is not present</Label>
+			</Field>-->
 		</ConfigUI>
 		<States>
 			<State id="lastNotificationTime">

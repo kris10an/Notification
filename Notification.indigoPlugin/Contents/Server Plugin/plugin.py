@@ -9,6 +9,7 @@ import indigo
 import os
 import sys
 import time
+import operator
 from datetime import datetime
 import strvartime
 
@@ -130,6 +131,8 @@ class Plugin(indigo.PluginBase):
 		if dev.deviceTypeId == u'notificationPerson':
 			self.personUpdatePresence(dev)
 			self.personList[dev.id] = 'active'		
+		elif dev.deviceTypeId == u'notificationCategory':
+			self.categoryList[dev.id] = 'active'	
 			
 		if self.extDebug:
 			self.debugLog(u'personList: %s' % (str(self.personList)))
@@ -149,6 +152,9 @@ class Plugin(indigo.PluginBase):
 				del self.personPresentList[dev.id]
 			self.numPersonPresent = len(self.personPresentList)
 			self.debugLog(u'deviceStopComm update numPersonPresent: %i' % (self.numPersonPresent))
+		elif dev.deviceTypeId == u'notificationCategory':
+			if dev.id in self.categoryList:
+				del self.categoryList[dev.id]
 			
 		
 		if self.extDebug:
@@ -167,6 +173,10 @@ class Plugin(indigo.PluginBase):
 		if newDev.deviceTypeId == u'notificationPerson':
 			if origDev.pluginProps[u'presenceVariable'] != newDev.pluginProps[u'presenceVariable']:
 				self.personUpdatePresence(newDev)
+			# FIX need to do something else?
+		elif newDev.deviceTypeId == u'notificationCategory':
+			# FIX need to do something else?
+			pass
 				
 		# CHECK if this is necessary, or should be handled by Indigo server somehow
 		if origDev.enabled != newDev.enabled:
@@ -232,8 +242,8 @@ class Plugin(indigo.PluginBase):
 			return
 		
 		# Check if category device is enabled
-		if not categoryDev.enabled:
-			indigo.server.log(u'Notification category device "%s" has been disabled, skipping notification.\nNotification text: %s' % (categoryDev.name, action.text))
+		if ((not categoryDev.id in self.categoryList) or (not categoryDev.enabled)):
+			self.errorLog(u'Notification category device "%s" invalid or disabled, skipping notification.\nNotification text: %s' % (categoryDev.name, action.text))
 			return
 			
 		actionProps = action.props
@@ -244,8 +254,17 @@ class Plugin(indigo.PluginBase):
 		
 		# Check if every notification is to be delivered, or by interval, and that interval is now exceeded
 		send = False # whether or not to send notification
+		sent = False # whether or not notification has actually been sent
 		
-		if(len(catStates[u'lastNotificationTime']) > 0):
+		# Check first if at least one method for sending is selected, and not only logs
+		if u'email' in catProps[u'deliveryMethod'] or u'growl' in catProps[u'deliveryMethod']:
+			sendSelected = True
+			self.debugLog(u'At least one method for sending out notification selected (excluding logs)')
+		else: 
+			sendSelected = False
+			self.debugLog(u'No methods for sending out notification selected (excluding logs)')
+		
+		if(len(catStates[u'lastNotificationTime']) > 0 and sendSelected):
 			if catProps[u'sendEvery'] == u'always':
 				# Set to always send
 				send = True
@@ -304,13 +323,15 @@ class Plugin(indigo.PluginBase):
 		if send:
 									
 			#Make sure presence for persons is up to date
-			self.debugLog(u'Notification category configured to use presence, updating presence status of persons')
-			numPresent = self.personsUpdatePresence(True)
-			self.debugLog(u'%i persons found to be present' % (numPresent))
+			#self.debugLog(u'Notification category configured to use presence, updating presence status of persons')
+			#numPresent = self.personsUpdatePresence(True)
+			#self.debugLog(u'%i persons found to be present' % (numPresent))
+			numPresent = self.numPersonPresent
+			self.debugLog(u'%i persons indicated as present' % (numPresent))
 			
-			if numPresent == 0 and catProps[u'notifyPresent'] and not catProps[u'notifyAllIfNotPresent']:
+			if numPresent == 0 and catProps[u'notifyPresent'] and not catProps[u'notifyAllIfNonePresent']:
 				self.debugLog(u'Notify present only chosen, 0 persons will be notified as none are present')
-			elif numPresent == 0 and catProps[u'notifyPresent'] and catProps[u'notifyAllIfNotPresent']:
+			elif numPresent == 0 and catProps[u'notifyPresent'] and catProps[u'notifyAllIfNonePresent']:
 				self.debugLog(u'Notify all if none are present chosen, none are present -> all will be notified')
 			elif not catProps[u'notifyPresent']:
 				self.debugLog(u'Notification based on presence disabled, all will be notified')
@@ -321,18 +342,18 @@ class Plugin(indigo.PluginBase):
 			for person in catProps[u'deliverTo']:
 				#if self.extDebug: self.debugLog(u'Person given by category: %s' % (str(person)))
 				personDev = indigo.devices[int(person)]
-				personProps = personDev.pluginProps
-				personStates = personDev.states
-				if personDev.enabled:
+				if personDev.enabled and person.id in self.personList:
+					personProps = personDev.pluginProps
+					personStates = personDev.states
 					if self.extDebug: self.debugLog(u'Person "%s" included by category, \nprops: %s\nstates: %s' % (personDev.name, str(personProps), str(personStates)))
-					if (personStates[u'present'] and catProps[u'notifyPresent']) or (numPresent == 0 and catProps[u'notifyAllIfNotPresent']) or not catProps[u'notifyPresent']:
+					if (personStates[u'present'] and catProps[u'notifyPresent']) or (numPresent == 0 and catProps[u'notifyAllIfNonePresent']) or not catProps[u'notifyPresent']:
 						# Include e-mail address
 						self.debugLog(u'Person "%s" is to be notified, include e-mail "%s" in notification recipients' % (personDev.name, personProps[u'email']))
 						if self.validateEmail(personProps[u'email']):
 							emailsToSend.extend(personProps[u'email'])
 						else:
 							self.errorLog(u'Email address "%s" for person "%s" could not be validated' % (personProps[u'email'], personDev.name))
-					else:
+					elif (not personStates[u'present'] and catProps[u'notifyPresent']):
 						self.debugLog(u'Person "%s" is not present, remove as notification recipient' % (personDev.name))
 						# Exclude growl types for person
 						for gt in personProps['growlTypes']:
@@ -340,7 +361,7 @@ class Plugin(indigo.PluginBase):
 								growlsToSend.remove(gt)
 								self.debugLog(u'Removed growl type %s from notifications, person "%s"' % (gt, personDev.name))
 				else:
-					self.debugLog(u'Person %s has been disabled, skipping notification' % (personDev.name))		
+					self.debugLog(u'Person device "%s" has been disabled or is invalid, skipping notification for that person' % (personDev.name))		
 		
 		# Update notification action variable if not sendEvery or if set in plugin config
 		if actionProps[u'sendEvery'] != u'always' or self.alwaysUseVariables:
@@ -431,6 +452,9 @@ class Plugin(indigo.PluginBase):
 		return (True, valuesDict)
 		
 		
+	# def getDeviceConfigUiValues():
+	# possible to get values of device config UI?	
+		
 	# Catch changes to config prefs
 	
 	def closedPrefsConfigUi(self, valuesDict, userCancelled):
@@ -457,12 +481,47 @@ class Plugin(indigo.PluginBase):
 	
 	# Devices.XML notificationPerson
 	def clearSelectionPresenceVariable(self, valuesDict, typeId, devId):
-		valuesDict['presenceVariable'] = ''
+		valuesDict[u'presenceVariable'] = ''
 		return valuesDict
 	def clearSelectionLogVariable(self, valuesDict, typeId, devId):
-		valuesDict['logVariable'] = ''
+		valuesDict[u'logVariable'] = ''
+		return valuesDict
+	
+	# Devices.XML notificationCategory
+	def clearSelectionCategoryActionGroups(self, valuesDict, typeId, devId):
+		valuesDict[u'beforeSpeakActionGroup'] = ''
+		valuesDict[u'afterSpeakActionGroup'] = ''
 		return valuesDict
 		
+	# List generators, definitions:
+	
+	def nonPersonalDeliveryMethodsList(self, filter="", valuesDict=None, typeId="", targetId=0):
+		self.debugLog(u'nonPersonalDeliveryMethodsList called')
+		myArray = [
+			(u"log",u"Indigo Log"),
+			(u"notificationLog",u"Notification plugin log"),
+			(u"speak",u"Speak")]
+		return myArray
+		
+	def personalDeliveryMethodsList(self, filter="", valuesDict=None, typeId="", targetId=0):
+		self.debugLog(u'personalDeliveryMethodsList called')
+		myArray = [
+			(u"email",u"E-mail"),
+			(u"growl",u"Push (Growl)")]
+		return myArray
+		
+	def personDeviceListIncludingAll(self, filter="", valuesDict=None, typeId="", targetId=0):
+		self.debugLog(u'personDeviceListIncludingAll called')
+		# return list of person devices to Device Config, including option for all
+		devArray = []
+		for dev in indigo.devices.iter(pluginId + u'.notificationPerson'):
+			# (could use self.personList, but want to include disabled devices in dialog
+			devArray.append ( (dev.id,dev.name) )
+		sortedDevArray = sorted ( devArray, key = operator.itemgetter(1))
+		sortedDevArray.insert (0, (u"all",u"All persons"))
+		if self.extDebug: self.debugLog(u'sortedDevArray:\n%s' % str(sortedDevArray))
+		return sortedDevArray
+
 		
 	########################################
 	# OTHER FUNCTIONS
