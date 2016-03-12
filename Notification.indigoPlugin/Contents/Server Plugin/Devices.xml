@@ -157,7 +157,7 @@ persons by:</Label>
 				<Label>Notification log:</Label>
 				<Description>Write notification to plugin log file</Description>
 			</Field>-->
-			<Field type="textfield" id="alwaysDeliverEmail">
+			<Field type="textfield" id="alwaysDeliverTo">
 				<Label>Always deliver to:
 				</Label>
 			</Field>

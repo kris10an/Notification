@@ -356,8 +356,16 @@ class Plugin(indigo.PluginBase):
 				except:
 					self.errorLog(u'Could not get person device "%i", delivery of notification could not be retrieved.\nNotification text:%s' % (int(personId), actionProps[u'text']))
 					continue
-					
-				present = personDev.states[u'present']
+				
+				# if option for "all if none present" is selected, handle all as present
+				if catProps[u'notifyAllIfNonePresent'] and numPresent == 0:
+					present = True
+					self.debugLog(u'None are present but options for notifying all is selected, all will be notified')
+				elif not catProps[u'notifyAllIfNonePresent'] and  numPresent == 0:
+					present = personDev.states[u'present']
+					self.debugLog(u'None are present and options for notifying all is not selected, none will be notified')
+				else:
+					present = personDev.states[u'present']
 				
 				# Remove growl/push notification from growl list, opposite logic from email
 				if (not u'growl' in catProps[u'presentDeliveryMethod'] and not u'growl' in catProps[u'nonPresentDeliveryMethod']) or ((u'growl' in catProps[u'presentDeliveryMethod'] and not present) and (not u'growl' in catProps[u'nonPresentDeliveryMethod'])) or ((u'growl' in catProps[u'nonPresentDeliveryMethod']) and (not u'growl' in catProps[u'presentDeliveryMethod']) and present):
@@ -403,6 +411,40 @@ class Plugin(indigo.PluginBase):
 				self.debugLog(u'growlsToSend:\n%s' % str(growlsToSend))
 				self.debugLog(u'emailsToSend:\n%s' % str(emailsToSend))
 				self.debugLog(u'notifyVars:\n%s' % str(notifyVars))
+				
+		# Determine additional recipient given by category
+		self.debugLog(u'Determine additional recipient given by notification category, regardless of presence etc.')
+		if len(catProps[u'alwaysDeliverTo']) > 0:
+			rcptArray = catProps[u'alwaysDeliverTo'].replace(u'\n',u'').split(u',')
+			if self.extDebug: self.debugLog(u'rcptArray: %s' % (str(rcptArray)))
+			for rcpt in rcptArray:
+				rcpt = rcpt.split(u':')
+				if rcpt[0].strip() == u'email':
+					if self.validateEmail(rcpt[1].strip()):
+						emailsToSend.append(rcpt[1].strip())
+					else:
+						self.errorLog(u'Invalid e-mail given as additional e-mail recipient for notification category "%s": "%s"' % (categoryDev.name, rcpt[1]))
+				else:
+					self.errorLog(u'Invalid delivery method "%s" spefified for additional receipients for notification category "%s". Valid options are: email' % (rcpt[0], categoryDev.name))
+					
+		# Determine additional recipient given by category
+		self.debugLog(u'Determine additional recipient given by notification action, regardless of presence etc.')
+		if len(actionProps[u'additionalRecipients']) > 0:
+			rcptArray = actionProps[u'additionalRecipients'].replace(u'\n',u'').split(u',')
+			if self.extDebug: self.debugLog(u'rcptArray: %s' % (str(rcptArray)))
+			for rcpt in rcptArray:
+				rcpt = rcpt.split(u':')
+				if rcpt[0].strip() == u'email':
+					if self.validateEmail(rcpt[1].strip()):
+						emailsToSend.append(rcpt[1].strip())
+					else:
+						self.errorLog(u'Invalid e-mail given as additional e-mail recipient for notification action: "%s"' % (rcpt[1]))
+				else:
+					self.errorLog(u'Invalid delivery method "%s" spefified for additional receipients for notification action. Valid options are: email' % (rcpt[0]))
+		
+		# Start sending notifications
+		
+		
 							
 				
 		

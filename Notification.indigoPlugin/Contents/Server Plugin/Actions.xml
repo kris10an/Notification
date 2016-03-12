@@ -58,7 +58,7 @@ Override category settings (optional):</Label>
 			<Field type="label" id="overrideGuidance" alignWithControl="true">
 				<Label>If you leave below fields blank, the settings from the notification category will be used. If it is set here, the settings in category is overridden.</Label>
 			</Field>
-			<Field type="textfield" id="recipients">
+			<Field type="textfield" id="additionalRecipients">
 				<Label>Additional
 recipients:</Label>
 			</Field>
