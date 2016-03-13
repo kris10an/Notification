@@ -5,7 +5,7 @@
 		<Description></Description>
 	</Field>
 	<Field type="checkbox" id="extensiveDebug" defaultValue="false">
-		<Label>Extensive debug output:</Label>
+		<Label>Verbose debug output:</Label>
 		<Description></Description>
 	</Field>
 	<Field type="label" id="infoDebug" alignWithControl="true" visibleBindingId="extensiveDebug" visibleBindingValue="true">

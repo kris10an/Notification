@@ -412,38 +412,98 @@ class Plugin(indigo.PluginBase):
 				self.debugLog(u'emailsToSend:\n%s' % str(emailsToSend))
 				self.debugLog(u'notifyVars:\n%s' % str(notifyVars))
 				
-		# Determine additional recipient given by category
-		self.debugLog(u'Determine additional recipient given by notification category, regardless of presence etc.')
-		if len(catProps[u'alwaysDeliverTo']) > 0:
-			rcptArray = catProps[u'alwaysDeliverTo'].replace(u'\n',u'').split(u',')
-			if self.extDebug: self.debugLog(u'rcptArray: %s' % (str(rcptArray)))
-			for rcpt in rcptArray:
-				rcpt = rcpt.split(u':')
-				if rcpt[0].strip() == u'email':
-					if self.validateEmail(rcpt[1].strip()):
-						emailsToSend.append(rcpt[1].strip())
+			# Determine additional recipient given by category
+			self.debugLog(u'Determine additional recipient given by notification category, regardless of presence etc.')
+			if len(catProps[u'alwaysDeliverTo']) > 0:
+				rcptArray = catProps[u'alwaysDeliverTo'].replace(u'\n',u'').split(u',')
+				if self.extDebug: self.debugLog(u'rcptArray: %s' % (str(rcptArray)))
+				for rcpt in rcptArray:
+					rcpt = rcpt.split(u':')
+					if rcpt[0].strip() == u'email':
+						if self.validateEmail(rcpt[1].strip()):
+							emailsToSend.append(rcpt[1].strip())
+						else:
+							self.errorLog(u'Invalid e-mail given as additional e-mail recipient for notification category "%s": "%s"' % (categoryDev.name, rcpt[1]))
 					else:
-						self.errorLog(u'Invalid e-mail given as additional e-mail recipient for notification category "%s": "%s"' % (categoryDev.name, rcpt[1]))
-				else:
-					self.errorLog(u'Invalid delivery method "%s" spefified for additional receipients for notification category "%s". Valid options are: email' % (rcpt[0], categoryDev.name))
+						self.errorLog(u'Invalid delivery method "%s" spefified for additional receipients for notification category "%s". Valid options are: email' % (rcpt[0], categoryDev.name))
 					
-		# Determine additional recipient given by category
-		self.debugLog(u'Determine additional recipient given by notification action, regardless of presence etc.')
-		if len(actionProps[u'additionalRecipients']) > 0:
-			rcptArray = actionProps[u'additionalRecipients'].replace(u'\n',u'').split(u',')
-			if self.extDebug: self.debugLog(u'rcptArray: %s' % (str(rcptArray)))
-			for rcpt in rcptArray:
-				rcpt = rcpt.split(u':')
-				if rcpt[0].strip() == u'email':
-					if self.validateEmail(rcpt[1].strip()):
-						emailsToSend.append(rcpt[1].strip())
+			# Determine additional recipient given by category
+			self.debugLog(u'Determine additional recipient given by notification action, regardless of presence etc.')
+			if len(actionProps[u'additionalRecipients']) > 0:
+				rcptArray = actionProps[u'additionalRecipients'].replace(u'\n',u'').split(u',')
+				if self.extDebug: self.debugLog(u'rcptArray: %s' % (str(rcptArray)))
+				for rcpt in rcptArray:
+					rcpt = rcpt.split(u':')
+					if rcpt[0].strip() == u'email':
+						if self.validateEmail(rcpt[1].strip()):
+							emailsToSend.append(rcpt[1].strip())
+						else:
+							self.errorLog(u'Invalid e-mail given as additional e-mail recipient for notification action: "%s"' % (rcpt[1]))
 					else:
-						self.errorLog(u'Invalid e-mail given as additional e-mail recipient for notification action: "%s"' % (rcpt[1]))
+						self.errorLog(u'Invalid delivery method "%s" spefified for additional receipients for notification action. Valid options are: email' % (rcpt[0]))
+		
+			# Find log type, title etc.
+			logType = catProps[u'logType']
+			if len(actionProps[u'title']) > 0:
+				title = actionProps[u'title']
+				emailSubject = title
+			else:
+				title = logType
+				emailSubject = 'Indigo ' + title
+			identifier = actionProps[u'identifier']
+			notificationText = actionProps[u'text']
+			emailBody = actionProps[u'text'] + '\n\nIdentifier: ' + identifier + '\nCategory: ' + categoryDev.name + '\nLog type: ' + logType
+		
+		
+			# Start sending notifications
+			# GROWL
+			if len(growlsToSend) > 0:
+				# remove possible duplicates
+				growlsToSend = set(growlsToSend)
+				if self.extDebug: self.debugLog(u'Starting sending growl notifications, growlsToSend: %s' % str(growlsToSend))
+				growlPlugin = indigo.server.getPlugin("com.perceptiveautomation.indigoplugin.growl")		
+				if growlPlugin.isEnabled():		
+					for growlType in growlsToSend:
+						self.debugLog(u'Growl notification type "%s" with title "%s" being sent' % (growlType,title))
+						try:
+							growlPlugin.executeAction("notify", props={'type':growlType, 'title':title, 'descString':notificationText, 'priority':catProps[u'growlPriority'], 'sticky':catProps[u'growlSticky']})
+							sent = True
+						except:
+							self.errorLog(u'Could not send growl notification "%s" with title "%s"' % (growlType,title))
 				else:
-					self.errorLog(u'Invalid delivery method "%s" spefified for additional receipients for notification action. Valid options are: email' % (rcpt[0]))
+					self.errorLog(u'Growl Plugin is disabled, growl notifications could not be sent!\nNotification category: %s\nNotification text: %s' % (categoryDev.name, notificationText))
 		
-		# Start sending notifications
-		
+			# EMAIL
+			if len(emailsToSend) > 0:
+				# remove possible duplicates
+				emailsToSend = set(emailsToSend)
+				if self.extDebug: self.debugLog(u'Starting sending e-mail notifications, emailsToSend: %s' % str(emailsToSend))
+				for rcpt in emailsToSend:
+					self.debugLog(u'E-mail notification to %s with subject "%s" being sent' % (rcpt, emailSubject))
+					indigo.server.sendEmailTo(rcpt, subject=emailSubject, body=emailBody)
+					sent = True
+				
+			# VARIABLE
+			if len(notifyVars) > 0:
+				# remove possible duplicates
+				notifyVars = set(notifyVars)
+				if self.extDebug: self.debugLog(u'Starting writing variable notifications, notifyVars: %s' % str(notifyVars))
+				for nVarId in notifyVars:
+					try:
+						nVar = indigo.variables[nVarId]
+					except:
+						self.errorLog(u'Could not get notification variable with id %i' % (nVarId))
+					else:
+						self.debugLog(u'Notification being written to variable %s' % (nVar.name))
+						# First, set variable to nothing, make it possible to trigger off variable changes even if same notification
+						# is sent two times in a row
+						indigo.variable.updateValue(nVar,'')
+						indigo.variable.updateValue(nVar,notificationText)
+						sent = True
+					
+				
+			
+			
 		
 							
 				
@@ -483,7 +543,9 @@ class Plugin(indigo.PluginBase):
 					self.debugLog(u'Person device "%s" has been disabled or is invalid, skipping notification for that person' % (personDev.name))	"""	
 		
 		# Update notification action variable if not sendEvery or if set in plugin config
-		if actionProps[u'sendEvery'] != u'always' or self.alwaysUseVariables:
+		# For now, variable and device states is updated if send=True, not id sent=True
+		# Believe this is most correct, as log etc. might be written even if no persons are directly notified
+		if (send and actionProps[u'sendEvery'] != u'always') or self.alwaysUseVariables:
 			variableNameStr = self.notificationVarPrefix + actionProps[u'identifier']
 			self.debugLog(u'Setting to update variable "%s"' % (variableNameStr))
 			# Check if variable exists
@@ -642,6 +704,21 @@ class Plugin(indigo.PluginBase):
 		if self.extDebug: self.debugLog(u'sortedDevArray:\n%s' % str(sortedDevArray))
 		return sortedDevArray
 
+
+	########################################
+	# SEND NOTIFICATION FUNCTIONS
+	###################
+	
+		
+	def notifySendGrowl():
+		pass
+		
+	def notifySendEmail():
+		pass
+		
+	def notifyToVariable():
+		pass	
+
 		
 	########################################
 	# OTHER FUNCTIONS
@@ -650,7 +727,7 @@ class Plugin(indigo.PluginBase):
 	
 	# Validate e-mail addres:
 	def validateEmail(self, emailStr):
-		# FIX
+		# FIX something here
 		return True
 		
 	
@@ -714,13 +791,5 @@ class Plugin(indigo.PluginBase):
 		
 		# refresh Indigo, not sure if this is necessary?
 		dev.stateListOrDisplayStateIdChanged()
-		
-	def notifySendGrowl():
-		pass
-		
-	def notifySendEmail():
-		pass
-		
-	def notifyToVariable():
-		pass
+
 		

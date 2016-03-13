@@ -43,7 +43,7 @@ Notification delivery options</Label>
 				<Label>Select growl notification type(s) that are "linked" to the person. Note that which growl types are actually delivered is given by the setting on category level, but the groups selected here may be excluded based on presence.</Label>
 			</Field>
 			<Field type="menu" id="logVariable">
-				<Label>Log variable:</Label>
+				<Label>Notification variable:</Label>
 				<List class="indigo.variables" filter=""/>
 			</Field>
 			<Field type="label" id="personLogVariableGuidance" alignWithControl="true">
