@@ -110,6 +110,10 @@ Delivery options</Label>
 				<Label>Notify present only:</Label>
 				<Description>Notify only those that are present, others are ignored</Description>
 			</Field>-->
+
+			<Field type="textfield" id="logType">
+				<Label>Title / log type:</Label>
+			</Field>
 			<Field type="list" id="deliverTo" rows="4" defaultValue="all">
 				<Label>Recipients:</Label>
 				<List class="self" method="personDeviceListIncludingAll"/>
@@ -164,26 +168,6 @@ persons by:</Label>
 			<Field type="label" id="alwaysEmailGuidance" alignWithControl="true" fontSize="small">
 				<Label>Always deliver notification to these addresses regardless of other settings (presence etc.). Syntax: email:john@doe.com,email:jack@email.com</Label>
 			</Field>
-			<Field type="label" id="introLog" visibleBindingId="nonPersonalDeliveryMethod" visibleBindingValue="log,notificationLog">
-				<Label>				
-Log options</Label>
-			</Field>
-			<Field id="simpleSeparator2" type="separator" visibleBindingId="nonPersonalDeliveryMethod" visibleBindingValue="log,notificationLog"/>
-			<Field type="textfield" id="logType" visibleBindingId="nonPersonalDeliveryMethod" visibleBindingValue="log,notificationLog">
-				<Label>Log type / title:</Label>
-			</Field>
-			<Field type="checkbox" id="logAsError" defaultValue="false" visibleBindingId="nonPersonalDeliveryMethod" visibleBindingValue="log,notificationLog">
-				<Label>Log as error:</Label>
-				<Description>Log notification as error code</Description>
-			</Field>
-			<!--<Field type="checkbox" id="email" defaultValue="true">
-				<Label>E-mail:</Label>
-				<Description>Deliver notification as e-mail</Description>
-			</Field>
-			<Field type="checkbox" id="push" defaultValue="false">
-				<Label>Push:</Label>
-				<Description>Push notification (growl)</Description>
-			</Field>-->
 			<Field type="label" id="introGrowl">
 				<Label>				
 Growl options</Label>
@@ -208,6 +192,30 @@ types:</Label>
 				<Label>Growl sticky:</Label>
 				<Description>Make growl notification sticky</Description>
 			</Field>
+			<Field type="label" id="introLog" visibleBindingId="nonPersonalDeliveryMethod" visibleBindingValue="log,notificationLog">
+				<Label>				
+Log options</Label>
+			</Field>
+			<Field id="simpleSeparator2" type="separator" visibleBindingId="nonPersonalDeliveryMethod" visibleBindingValue="log,notificationLog"/>
+			<Field type="menu" id="log" defaultValue="always">
+				<Label>Log:</Label>
+				<List>
+					<Option value="ifPresent">If someone present</Option>
+					<Option value="always">Always</Option>
+				</List>
+			</Field>
+			<Field type="checkbox" id="logAsError" defaultValue="false" visibleBindingId="nonPersonalDeliveryMethod" visibleBindingValue="log,notificationLog">
+				<Label>Log as error:</Label>
+				<Description>Log notification as error code</Description>
+			</Field>
+			<!--<Field type="checkbox" id="email" defaultValue="true">
+				<Label>E-mail:</Label>
+				<Description>Deliver notification as e-mail</Description>
+			</Field>
+			<Field type="checkbox" id="push" defaultValue="false">
+				<Label>Push:</Label>
+				<Description>Push notification (growl)</Description>
+			</Field>-->
 			<!--<Field type="checkbox" id="speak" defaultValue="false">
 				<Label>Speech:</Label>
 				<Description>Speak notification</Description>
@@ -217,6 +225,13 @@ types:</Label>
 Speech options (action groups)</Label>
 			</Field>
 			<Field id="simpleSeparator" type="separator" visibleBindingId="nonPersonalDeliveryMethod" visibleBindingValue="speak"/>
+			<Field type="menu" id="speak" defaultValue="ifPresent">
+				<Label>Speak:</Label>
+				<List>
+					<Option value="ifPresent">If someone present</Option>
+					<Option value="always">Always</Option>
+				</List>
+			</Field>
 			<Field type="menu" id="beforeSpeakActionGroup" visibleBindingId="nonPersonalDeliveryMethod" visibleBindingValue="speak">
 				<Label>Before speech AG:</Label>
 				<List class="indigo.actionGroups" filter=""/>

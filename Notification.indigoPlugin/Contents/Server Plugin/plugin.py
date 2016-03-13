@@ -12,6 +12,7 @@ import time
 import operator
 from datetime import datetime
 import strvartime
+import csv
 
 # Note the "indigo" module is automatically imported and made available inside
 # our global name space by the host process.
@@ -443,7 +444,10 @@ class Plugin(indigo.PluginBase):
 						self.errorLog(u'Invalid delivery method "%s" spefified for additional receipients for notification action. Valid options are: email' % (rcpt[0]))
 		
 			# Find log type, title etc.
-			logType = catProps[u'logType']
+			if len(actionProps[u'logType']) > 0:
+				logType = actionProps[u'logType']
+			else:
+				logType = catProps[u'logType']
 			if len(actionProps[u'title']) > 0:
 				title = actionProps[u'title']
 				emailSubject = title
@@ -451,8 +455,8 @@ class Plugin(indigo.PluginBase):
 				title = logType
 				emailSubject = 'Indigo ' + title
 			identifier = actionProps[u'identifier']
-			notificationText = actionProps[u'text']
-			emailBody = actionProps[u'text'] + '\n\nIdentifier: ' + identifier + '\nCategory: ' + categoryDev.name + '\nLog type: ' + logType
+			notificationText = self.substitute(actionProps[u'text'])
+			emailBody = notificationText + '\n\nIdentifier: ' + identifier + '\nCategory: ' + categoryDev.name + '\nLog type: ' + logType
 		
 		
 			# Start sending notifications
@@ -500,47 +504,90 @@ class Plugin(indigo.PluginBase):
 						indigo.variable.updateValue(nVar,'')
 						indigo.variable.updateValue(nVar,notificationText)
 						sent = True
-					
-				
-			
-			
+
+		# LOG AND SPEECH
+		# Perform regardless of presence settings etc.	
 		
-							
-				
+		# Indigo log and notification plugin log
+		writeLog = False
 		
-			"""if numPresent == 0 and catProps[u'notifyPresent'] and not catProps[u'notifyAllIfNonePresent']:
-				self.debugLog(u'Notify present only chosen, 0 persons will be notified as none are present')
-			elif numPresent == 0 and catProps[u'notifyPresent'] and catProps[u'notifyAllIfNonePresent']:
-				self.debugLog(u'Notify all if none are present chosen, none are present -> all will be notified')
-			elif not catProps[u'notifyPresent']:
-				self.debugLog(u'Notification based on presence disabled, all will be notified')
-			elif catProps[u'notifyPresent']:
-				self.debugLog(u'There are %i people present, those will be notified' % (numPresent))
-	
-			# Determine who to deliver to
-			for person in catProps[u'deliverTo']:
-				#if self.extDebug: self.debugLog(u'Person given by category: %s' % (str(person)))
-				personDev = indigo.devices[int(person)]
-				if personDev.enabled and person.id in self.personList:
-					personProps = personDev.pluginProps
-					personStates = personDev.states
-					if self.extDebug: self.debugLog(u'Person "%s" included by category, \nprops: %s\nstates: %s' % (personDev.name, str(personProps), str(personStates)))
-					if (personStates[u'present'] and catProps[u'notifyPresent']) or (numPresent == 0 and catProps[u'notifyAllIfNonePresent']) or not catProps[u'notifyPresent']:
-						# Include e-mail address
-						self.debugLog(u'Person "%s" is to be notified, include e-mail "%s" in notification recipients' % (personDev.name, personProps[u'email']))
-						if self.validateEmail(personProps[u'email']):
-							emailsToSend.extend(personProps[u'email'])
-						else:
-							self.errorLog(u'Email address "%s" for person "%s" could not be validated' % (personProps[u'email'], personDev.name))
-					elif (not personStates[u'present'] and catProps[u'notifyPresent']):
-						self.debugLog(u'Person "%s" is not present, remove as notification recipient' % (personDev.name))
-						# Exclude growl types for person
-						for gt in personProps['growlTypes']:
-							if gt in growlsToSend:
-								growlsToSend.remove(gt)
-								self.debugLog(u'Removed growl type %s from notifications, person "%s"' % (gt, personDev.name))
+		# Check if action has override settings
+		if actionProps[u'log'] == u'default':
+			if self.extDebug: self.debugLog(u'Notification action set to use log setting of category, checking category setting')
+			# Check category settings
+			if (u'log' in catProps[u'nonPersonalDeliveryMethod'] or u'notificationLog' in catProps[u'nonPersonalDeliveryMethod']):
+				if self.extDebug: self.debugLog(u'Indigo log and/or Notification plugin log selected in notification category')
+				if catProps[u'log'] == u'always':
+					if self.extDebug: self.debugLog(u'Notification category set to always log, log enabled')
+					writeLog = True
+				elif catProps[u'log'] == u'ifPresent':
+					if numPresent > 0:
+						if self.extDebug: self.debugLog(u'Notification category set to log if someone present, %i persons present, log enabled' % (numPresent))
+						writeLog = True
+					elif numPresent == 0 and catProps[u'notifyAllIfNonePresent']:
+						if self.extDebug: self.debugLog(u'Notification category set to log if someone present, no-one is present, but notify all if none present selected -> log enabled' % (numPresent))
+						writeLog = True
+					elif numPresent == 0:
+						self.debugLog(u'Notification category set to log if someone present, but no-one present, log entry disabled')
+						writeLog = False
+					else:
+						self.errorLog(u'Unexpected result when determining whether to log notification category "%s" based on presence, log entry enabled' % (categoryDev.name))
+						writeLog = True
 				else:
-					self.debugLog(u'Person device "%s" has been disabled or is invalid, skipping notification for that person' % (personDev.name))	"""	
+						self.errorLog(u'Unexpected setting for log in notification category "%s", log entry enabled' % (categoryDev.name))
+						writeLog = True
+			else:
+				if self.extDebug: self.debugLog(u'Indigo log and/or Notification plugin log NOT selected in notification category, disabling log')
+				writeLog = False
+		elif actionProps[u'log'] == u'always':
+			if self.extDebug: self.debugLog(u'Notification action set to always log, overriding category setting')
+			writeLog = True
+		elif actionProps[u'log'] == u'ifPresent':
+			if numPresent > 0 or (numPresent == 0 and catProps[u'notifyAllIfNonePresent']):
+				if self.extDebug: self.debugLog(u'Notification action set to override category setting and log if someone present -> enabling log entry')
+				writeLog = True
+			else:
+				self.debugLog(u'Notification action set to override category setting and log if someone present -> disabling log entry')
+				writeLog = False
+		elif actionProps[u'log'] == u'never':
+			self.debugLog(u'Notification action set to override category setting and never log -> log entry disabled')
+			writeLog = False
+		else:
+			self.errorLog(u'Unexpected setting for log in notification action, notification category "%s", log entry enabled' % (categoryDev.name))
+			writeLog = True
+			
+		if writeLog:
+			# Check log As Error
+			logAsError = False
+			if actionProps[u'logAsError'] == u'default':
+				# Use category setting
+				logAsError = bool(catProps[u'logAsError'])
+				if self.extDebug: self.debugLog(u'Notifcation action set to use log-as-error setting of category, log as error: %r' % (logAsError))
+			elif actionProps[u'logAsError'] == u'true':
+				logAsError = True
+				if self.extDebug: self.debugLog(u'Notifcation action set to always log as error, enabling log as error')
+			elif actionProps[u'logAsError'] == u'false':
+				logAsError = False
+				if self.extDebug: self.debugLog(u'Notifcation action set to not log as error, disabling log as error')
+			else:
+				self.errorLog(u'Unexpected setting of log as error, enabling log as error to be user')
+				logAsError = True
+		
+			if u'log' in catProps[u'nonPersonalDeliveryMethod']:
+				if len(actionProps[u'identifier']) > 0:
+					logEntryStr = notificationText + u' (Identifier: ' + actionProps[u'identifier'] + u')'
+				else:
+					logEntryStr = notificationText
+				self.debugLog(u'Making indigo log entry')
+				indigo.server.log(notificationText, isError=logAsError, type=logType)
+				
+			if u'notificationLog' in catProps[u'nonPersonalDeliveryMethod']:
+				pass
+				
+		else:
+			self.debugLog(u'Making log entries for notification disabled, skipping both indigo and notification plugin log')
+			
+			# Check if 
 		
 		# Update notification action variable if not sendEvery or if set in plugin config
 		# For now, variable and device states is updated if send=True, not id sent=True
@@ -705,7 +752,7 @@ class Plugin(indigo.PluginBase):
 		return sortedDevArray
 
 
-	########################################
+	'''	########################################
 	# SEND NOTIFICATION FUNCTIONS
 	###################
 	
@@ -717,7 +764,7 @@ class Plugin(indigo.PluginBase):
 		pass
 		
 	def notifyToVariable():
-		pass	
+		pass	'''
 
 		
 	########################################
@@ -791,5 +838,12 @@ class Plugin(indigo.PluginBase):
 		
 		# refresh Indigo, not sure if this is necessary?
 		dev.stateListOrDisplayStateIdChanged()
-
 		
+	def checkAndCreateLogFile(self):
+		pass
+
+# from http://stackoverflow.com/questions/5838605/python-dictwriter-writing-utf-8-encoded-csv-files
+class DictWriterEx(csv.DictWriter):
+    def writeheader(self):
+        header = dict(zip(self.fieldnames, self.fieldnames))
+        self.writerow(header)
