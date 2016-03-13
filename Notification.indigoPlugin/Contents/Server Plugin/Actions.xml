@@ -75,6 +75,7 @@ Syntax: email:john@doe.com,email:mrjones@hotmail.com</Label>
 					<Option value="never">Never</Option>
 				</List>
 			</Field>
+			<!-- DISABLED due to complexity
 			<Field type="menu" id="log" defaultValue="default">
 				<Label>Log:</Label>
 				<List>
@@ -83,7 +84,7 @@ Syntax: email:john@doe.com,email:mrjones@hotmail.com</Label>
 					<Option value="always">Always</Option>
 					<Option value="never">Never</Option>
 				</List>
-			</Field>
+			</Field>-->
 			<Field type="menu" id="logAsError" defaultValue="default">
 				<Label>Log as error:</Label>
 				<List>

@@ -13,6 +13,7 @@ import operator
 from datetime import datetime
 import strvartime
 import csv
+import thread, threading
 
 # Note the "indigo" module is automatically imported and made available inside
 # our global name space by the host process.
@@ -29,6 +30,23 @@ intervalToSeconds = {
 	u'1 day'		:	60*60*24,
 	u'1 week'	:	60*60*24*7,
 	u'1 month'	:	60*60*24*30 }
+	
+logFileHeadings = [
+	u'Date',
+	u'Time',
+	u'Identifier',
+	u'Notification',
+	u'Log type',
+	u'Title',
+	u'Is error',
+	u'Category',
+	u'Persons',
+	u'Number present',
+	u'E-mail recipients',
+	u'Growl types',
+	u'Growl priority',
+	u'Growl sticky',
+	u'Variables' ]
 
 
 ################################################################################
@@ -43,15 +61,16 @@ class Plugin(indigo.PluginBase):
 		self.pluginLog = pluginPrefs.get(u'pluginLog', True)
 		self.varFolderName = pluginPrefs.get(u'varFolderName','Notification plugin log')
 		self.alwaysUseVariables = pluginPrefs.get(u'alwaysUseVariables',False)
+		self.logFileDateFormat = pluginPrefs.get(u'logFileFormat','%Y-%m')
 		
 		# Error states
 		self.pluginConfigErrorState = False # Whether or not plugin is in error state, due to faulty plugin config
 		
 		# Presets, not configurable
 		self.notificationVarPrefix = u'_notification_'
-		self.logDir = indigo.server.getInstallFolderPath() + u'/Logs/Notifications/'
-		self.logFileSuffix = u' Notifications.txt'
-		self.logFileDateFormat = u'%Y-%m-%d'
+		self.logDir = indigo.server.getInstallFolderPath() + u'/Logs/Notifications test/'
+		self.logFileSuffix = u' Notifications.csv'
+		#self.logFileDateFormat = u'%Y-%m-%d'
 		
 		# Device and variable lists
 		self.personList = {} #dev.id : string
@@ -59,6 +78,9 @@ class Plugin(indigo.PluginBase):
 		self.categoryList = {} # dev.id : string
 		self.presenceVariableList = {} #var.id : dev.id
 		self.numPersonPresent = 0
+		
+		# Threads
+		self.threads = []
 
 	########################################
 	def __del__(self):
@@ -90,6 +112,15 @@ class Plugin(indigo.PluginBase):
 			else:
 				# Find ID of existing folder
 				self.varFolderId = indigo.variables.folders[self.varFolderName]
+				
+		# Check if log file dir exists
+		if self.pluginLog:
+			if not self.checkAndCreateLogFile():
+				self.errorLog(u'Could not verify or create plugin log folder')
+			else:
+				self.debugLog(u'Verified plugin log folder and file. Log file: %s' % (self.logFile))
+		else:
+			self.debugLog(u'Plugin log disabled')
 				
 		self.debugLog(u'Subscribing to variable changes')
 		indigo.variables.subscribeToChanges()
@@ -166,6 +197,7 @@ class Plugin(indigo.PluginBase):
 		
 	def deviceUpdated(self, origDev, newDev):
 		# call the base's implementation first just to make sure all the right things happen elsewhere
+		# FIX / CHECK should this be done or not?
 		indigo.PluginBase.deviceUpdated(self, origDev, newDev)
 		#if self.extDebug: self.debugLog(u'deviceUpdated called %s: \n\n\n***origDev:\n %s\n\n\n***newDev:\n %s' % (newDev.name, str(origDev), str(newDev)))
 		#else:
@@ -260,6 +292,9 @@ class Plugin(indigo.PluginBase):
 		send = False # whether or not to send notification
 		sent = False # whether or not notification has actually been sent
 		
+		# Find the time to use for the notification
+		notificationTime = datetime.now()
+		
 		"""# Check first if at least one method for sending is selected, and not only logs
 		if len(catProps[u'presentDeliveryMethod']) > 0 or len(catProps[u'nonPresentDeliveryMethod']) > 0:
 			sendSelected = True
@@ -295,7 +330,7 @@ class Plugin(indigo.PluginBase):
 					self.errorLog(u'Invalid setting for delivery interval for category "%s". Check settings. Notification skipped.\nNotification text: %s' % (categoryDev.name, actionProps[u'text']))
 					return
 				
-				if strvartime.timeDiff(lastSent, 'now', 'seconds') >= intervalToSeconds[catProps[u'sendEvery']]:
+				if strvartime.timeDiff(lastSent, notificationTime, 'seconds') >= intervalToSeconds[catProps[u'sendEvery']]:
 					send = True
 					self.debugLog(u'Notification category set to send every %s, Last notification sent %s. Will send notification now' % (catProps[u'sendEvery'], strvartime.prettyDate(lastSent)))
 				else:
@@ -315,7 +350,7 @@ class Plugin(indigo.PluginBase):
 				timeStr = notificationVar.value.rsplit(u'\t')[0]
 				timeStamp = strvartime.strToTime(timeStr)
 				if self.extDebug: self.debugLog(u'Notification action last sent: %s' % (timeStr))
-				if strvartime.timeDiff(timeStamp, 'now', 'seconds') < intervalToSeconds[actionProps[u'sendEvery']]:
+				if strvartime.timeDiff(timeStamp, notificationTime, 'seconds') < intervalToSeconds[actionProps[u'sendEvery']]:
 					# Interval/frequency has not been passed, will not send notification
 					send = False
 					self.debugLog(u'Notification action set to send every %s. Last notification sent %s. Will _not_ send notification now' % (actionProps[u'sendEvery'], strvartime.prettyDate(timeStamp)))
@@ -330,6 +365,8 @@ class Plugin(indigo.PluginBase):
 		growlsToSend = catProps[u'growlTypes'] # List given by notification category, will remove later based on presence
 		emailsToSend = [] # Opposite logic, include later based on presence
 		notifyVars = []
+		personNameArray = []
+		variableNameArray = []
 		if self.extDebug: self.debugLog(u'growlsToSend:\n%s' % str(growlsToSend))
 	
 		if send:
@@ -354,6 +391,7 @@ class Plugin(indigo.PluginBase):
 			for personId in personsList:
 				try:
 					personDev = indigo.devices[int(personId)]
+					personNameArray.append(personDev.name)
 				except:
 					self.errorLog(u'Could not get person device "%i", delivery of notification could not be retrieved.\nNotification text:%s' % (int(personId), actionProps[u'text']))
 					continue
@@ -402,6 +440,7 @@ class Plugin(indigo.PluginBase):
 							notifyVar = indigo.variables[int(personDev.pluginProps[u'logVariable'])]
 							self.debugLog(u'Adding variable notification for "%s", variable: %s' % (personDev.name, notifyVar.name))
 							notifyVars.append(notifyVar.id)
+							variableNameArray.append(notifyVar.name)
 						except:
 							self.errorLog(u'Could not get notification variable specified for "%s": %s' % (personDev.name, personDev.pluginProps[u'logVariable']))
 					else:
@@ -508,14 +547,70 @@ class Plugin(indigo.PluginBase):
 		# LOG AND SPEECH
 		# Perform regardless of presence settings etc.	
 		
+		# Check speech settings
+		speech = False
+		# Check if action has override settings
+		if actionProps[u'speak'] == u'default':
+			if self.extDebug: self.debugLog(u'Notification action set to use speech setting of category, checking category setting')
+			# Check category settings
+			if (u'speak' in catProps[u'nonPersonalDeliveryMethod']):
+				if self.extDebug: self.debugLog(u'Speech selected in notification category')
+				if catProps[u'speak'] == u'always':
+					if self.extDebug: self.debugLog(u'Notification category set to always speak, speak enabled')
+					speech = True
+				elif catProps[u'speak'] == u'ifPresent':
+					if numPresent > 0:
+						if self.extDebug: self.debugLog(u'Notification category set to speak if someone present, %i persons present, speech enabled' % (numPresent))
+						speech = True
+					elif numPresent == 0:
+						self.debugLog(u'Notification category set to speak if someone present, but no-one present, speech disabled')
+						speech = False
+					else:
+						self.errorLog(u'Unexpected result when determining whether to speak notification category "%s" based on presence, speech enabled' % (categoryDev.name))
+						speech = True
+				else:
+						self.errorLog(u'Unexpected setting for speech in notification category "%s", speech enabled' % (categoryDev.name))
+						speech = True
+			else:
+				if self.extDebug: self.debugLog(u'Speech NOT selected in notification category, disabling speech')
+				speech = False
+		elif actionProps[u'speak'] == u'always':
+			if self.extDebug: self.debugLog(u'Notification action set to always speak, overriding category setting')
+			speech = True
+		elif actionProps[u'speak'] == u'ifPresent':
+			if numPresent > 0:
+				if self.extDebug: self.debugLog(u'Notification action set to override category setting and speak if someone present -> enabling speech')
+				speech = True
+			else:
+				self.debugLog(u'Notification action set to override category setting and speak if someone present -> disabling speech')
+				speech = False
+		elif actionProps[u'speak'] == u'never':
+			self.debugLog(u'Notification action set to override category setting and never speak -> speech disabled')
+			speech = False
+		else:
+			self.errorLog(u'Unexpected setting for speech in notification action, notification category "%s", speech enabled' % (categoryDev.name))
+			speech = True
+			
+		# Perform speech
+		if speech:
+			self.debugLog(u'Speaking notification, starting separate thread for speech')
+			thread.start_new_thread( speakNotification, (notificationText, catProps[u'beforeSpeakActionGroup'], catProps[u'afterSpeakActionGroup'] ) )
+			#speakThread = speakNotificationThread(notificationText, catProps[u'beforeSpeakActionGroup'], catProps[u'afterSpeakActionGroup'] )
+			#speakThread.start()
+			#self.threads.append(speakThread)
+			#speakThread.join()
+			if self.extDebug: self.debugLog(u'Thread for speech notification started')
+		
 		# Indigo log and notification plugin log
 		writeLog = False
 		
+		'''
+		DISABLED, too complex user interface for this logic..
 		# Check if action has override settings
 		if actionProps[u'log'] == u'default':
 			if self.extDebug: self.debugLog(u'Notification action set to use log setting of category, checking category setting')
 			# Check category settings
-			if (u'log' in catProps[u'nonPersonalDeliveryMethod'] or u'notificationLog' in catProps[u'nonPersonalDeliveryMethod']):
+			if (u'log' in catProps[u'nonPersonalDeliveryMethod'] or (u'notificationLog' in catProps[u'nonPersonalDeliveryMethod'] and self.pluginLog)):
 				if self.extDebug: self.debugLog(u'Indigo log and/or Notification plugin log selected in notification category')
 				if catProps[u'log'] == u'always':
 					if self.extDebug: self.debugLog(u'Notification category set to always log, log enabled')
@@ -537,7 +632,7 @@ class Plugin(indigo.PluginBase):
 						self.errorLog(u'Unexpected setting for log in notification category "%s", log entry enabled' % (categoryDev.name))
 						writeLog = True
 			else:
-				if self.extDebug: self.debugLog(u'Indigo log and/or Notification plugin log NOT selected in notification category, disabling log')
+				if self.extDebug: self.debugLog(u'Indigo log and/or Notification plugin log NOT selected in notification category (or plugin preferences), disabling log')
 				writeLog = False
 		elif actionProps[u'log'] == u'always':
 			if self.extDebug: self.debugLog(u'Notification action set to always log, overriding category setting')
@@ -554,8 +649,35 @@ class Plugin(indigo.PluginBase):
 			writeLog = False
 		else:
 			self.errorLog(u'Unexpected setting for log in notification action, notification category "%s", log entry enabled' % (categoryDev.name))
-			writeLog = True
-			
+			writeLog = True'''
+		
+		# Check category settings
+		if (u'log' in catProps[u'nonPersonalDeliveryMethod'] or (u'notificationLog' in catProps[u'nonPersonalDeliveryMethod'] and self.pluginLog)):
+			if self.extDebug: self.debugLog(u'Indigo log and/or Notification plugin log selected in notification category')
+			if catProps[u'log'] == u'always':
+				if self.extDebug: self.debugLog(u'Notification category set to always log, log enabled')
+				writeLog = True
+			elif catProps[u'log'] == u'ifPresent':
+				if numPresent > 0:
+					if self.extDebug: self.debugLog(u'Notification category set to log if someone present, %i persons present, log enabled' % (numPresent))
+					writeLog = True
+				elif numPresent == 0 and catProps[u'notifyAllIfNonePresent']:
+					if self.extDebug: self.debugLog(u'Notification category set to log if someone present, no-one is present, but notify all if none present selected -> log enabled' % (numPresent))
+					writeLog = True
+				elif numPresent == 0:
+					self.debugLog(u'Notification category set to log if someone present, but no-one present, log entry disabled')
+					writeLog = False
+				else:
+					self.errorLog(u'Unexpected result when determining whether to log notification category "%s" based on presence, log entry enabled' % (categoryDev.name))
+					writeLog = True
+			else:
+					self.errorLog(u'Unexpected setting for log in notification category "%s", log entry enabled' % (categoryDev.name))
+					writeLog = True
+		else:
+			if self.extDebug: self.debugLog(u'Indigo log and/or Notification plugin log NOT selected in notification category (or plugin preferences), disabling log')
+			writeLog = False		
+		
+		# Start writing log entries
 		if writeLog:
 			# Check log As Error
 			logAsError = False
@@ -573,6 +695,7 @@ class Plugin(indigo.PluginBase):
 				self.errorLog(u'Unexpected setting of log as error, enabling log as error to be user')
 				logAsError = True
 		
+			# Write Indigo log entry
 			if u'log' in catProps[u'nonPersonalDeliveryMethod']:
 				if len(actionProps[u'identifier']) > 0:
 					logEntryStr = notificationText + u' (Identifier: ' + actionProps[u'identifier'] + u')'
@@ -580,9 +703,40 @@ class Plugin(indigo.PluginBase):
 					logEntryStr = notificationText
 				self.debugLog(u'Making indigo log entry')
 				indigo.server.log(notificationText, isError=logAsError, type=logType)
+			
+			# Write notification plugin log entry
+			if u'notificationLog' in catProps[u'nonPersonalDeliveryMethod'] and self.pluginLog:
+				self.debugLog(u'Making plugin log entry, file %s' % (self.logFile))
+
+				logFileEntry = {
+					u'Date'					: notificationTime.strftime('%Y-%m-%d'),
+					u'Time'					: notificationTime.strftime('%H:%M:%S'),
+					u'Identifier'			: identifier,
+					u'Notification'			: notificationText,
+					u'Log type'				: logType,
+					u'Title'				: title,
+					u'Is error'				: str(logAsError),
+					u'Category'				: categoryDev.name,
+					u'Persons'				: u', '.join(personNameArray),
+					u'Number present'		: str(numPresent),
+					u'E-mail recipients'	: u', '.join(emailsToSend),
+					u'Growl types'			: u', '.join(growlsToSend),
+					u'Growl priority'		: str(catProps[u'growlPriority']),
+					u'Growl sticky'			: str(catProps[u'growlSticky']),
+					u'Variables' 			: u', '.join(variableNameArray) }
+					
+				if self.extDebug: self.debugLog(u'Information for plugin log entry: %s' % (str(logFileEntry)))
 				
-			if u'notificationLog' in catProps[u'nonPersonalDeliveryMethod']:
-				pass
+				result = self.writeLogFile(logFileEntry)
+				
+				if result:
+					self.debugLog(u'Plugin log entry made to %s' % (self.logFile))
+			elif not self.pluginLog:
+				self.debugLog(u'Notification plugin log has been disabled in plugin preferences')
+			elif not u'notificationLog' in catProps[u'nonPersonalDeliveryMethod']:
+				self.debugLog(u'Notification plugin log not selected in notification category, skipping')
+			else:
+				self.errorLog(u'Unexpected result when checking settings for notification plugin log, please check settings')
 				
 		else:
 			self.debugLog(u'Making log entries for notification disabled, skipping both indigo and notification plugin log')
@@ -590,11 +744,11 @@ class Plugin(indigo.PluginBase):
 			# Check if 
 		
 		# Update notification action variable if not sendEvery or if set in plugin config
-		# For now, variable and device states is updated if send=True, not id sent=True
+		# For now, variable and device states is updated if send=True, not if sent=True
 		# Believe this is most correct, as log etc. might be written even if no persons are directly notified
 		if (send and actionProps[u'sendEvery'] != u'always') or self.alwaysUseVariables:
 			variableNameStr = self.notificationVarPrefix + actionProps[u'identifier']
-			self.debugLog(u'Setting to update variable "%s"' % (variableNameStr))
+			if self.extDebug: self.debugLog(u'Setting to update variable "%s"' % (variableNameStr))
 			# Check if variable exists
 			if not variableNameStr in indigo.variables:
 				# Variable does not exist, try to create it
@@ -698,6 +852,7 @@ class Plugin(indigo.PluginBase):
    				plugin.restart(waitUntilDone=False)
 		self.varFolderName = self.pluginPrefs.get(u'varFolderName','Notification plugin log')
 		self.alwaysUseVariables = self.pluginPrefs.get(u'alwaysUseVariables',False)
+		self.logFileDateFormat = self.pluginPrefs.get(u'logFileFormat','%Y-%m')
 		
 		# DO VALIDATION
 		self.pluginConfigErrorState = False
@@ -839,8 +994,97 @@ class Plugin(indigo.PluginBase):
 		# refresh Indigo, not sure if this is necessary?
 		dev.stateListOrDisplayStateIdChanged()
 		
+	def checkAndCreateLogDir(self, dirname):
+		# credit http://stackoverflow.com/questions/12517451/python-automatically-creating-directories-with-file-output
+		if not os.path.exists(dirname):
+			try:
+				os.makedirs(dirname)
+				return True
+			except OSError as exc: # Guard against race condition
+				if exc.errno != errno.EEXIST:
+					raise	
+				return False
+		else:
+			return True
+		
 	def checkAndCreateLogFile(self):
-		pass
+	
+		self.logFile = self.getLogFileName()
+		if self.extDebug: self.debugLog(u'checkAndCreateLogFile, self.logFile: %s' % (self.logFile))
+		dirResult = self.checkAndCreateLogDir(self.logDir)
+		if self.extDebug: self.debugLog(u'checkAndCreateLogFile, dirResult: %r' % (dirResult))
+		if dirResult:
+			if os.path.isfile(self.logFile):
+				if self.extDebug: self.debugLog(u'checkAndCreateLogFile, log file already exists')
+				return True
+			else:
+				#try:
+				fp = open(self.logFile, 'wb')
+				#fp.write(u'\ufeff'.encode('utf8')) # BOM (optional...Excel needs it to open UTF-8 file properly)
+				writer = DictWriterEx(fp, logFileHeadings, dialect='excel', delimiter=';')
+				writer.writeheader()
+				fp.close()
+				self.debugLog(u'checkAndCreateLogFile, headers written to log file')
+				return True
+				#except:
+				#	self.errorLog(u'Could not create or write to plugin log file %s' % (self.logFile))
+				#	return False
+		else:
+			return False
+			
+	def getLogFileName(self):
+	
+		try:
+			logFileDatePart = datetime.strftime(datetime.now(), self.logFileDateFormat)
+		except:
+			self.errorLog(u'Could not get date part of notification plugin log file, check settings')
+			return False
+		else:
+			logFileStr = self.logDir + logFileDatePart + self.logFileSuffix
+			return logFileStr
+			
+	def writeLogFile(self, wDict):
+	
+		if self.checkAndCreateLogFile():
+			if self.extDebug: self.debugLog(u'Checked log file OK')
+			#try:
+			if self.extDebug: self.debugLog(u'Writing to plugin log file: %s' % (str(wDict)))
+			fp = open(self.logFile, 'ab')
+			writer = DictWriterEx(fp, logFileHeadings, dialect='excel', delimiter=';')
+			writer.writerow(dict((k, v.encode('utf-8')) for k, v in wDict.iteritems()))
+			fp.close()
+			return True
+			#xcept:
+			#	self.errorLog(u'Could not write notification to plugin log file %s' % (self.logFile))
+			#	return False
+		else:
+			self.errorLog(u'Could not get or create plugin log file %s' % (self.logFile))
+			return False
+		
+
+# http://www.tutorialspoint.com/python/python_multithreading.htm			
+class speakNotificationThread (threading.Thread):
+    def __init__(self, notification, beforeAG, afterAG):
+        threading.Thread.__init__(self)
+        self.notification = notification
+        self.beforeAG = beforeAG
+        self.afterAG = afterAG
+        #self.nplugin = nplugin
+    def run(self):
+        indigo.server.log( "Starting speak thread--")
+        speakNotification(self.notification, self.beforeAG, self.afterAG)
+        #Plugin.speakNotification(self.notification, self.beforeAG, self.afterAG)
+        indigo.server.log( "Exiting speak thread--")
+        
+def speakNotification(notification, beforeAG, afterAG):
+	#self.debugLog(u'speakNotification called')
+	if len(beforeAG) > 0:
+		#ag1 = indigo.actionGroups[int(beforeAG)]
+		indigo.actionGroup.execute(int(beforeAG))
+	indigo.server.speak(notification, waitUntilDone=True)
+	if len(afterAG) > 0:
+		indigo.actionGroup.execute(int(afterAG))
+		
 
 # from http://stackoverflow.com/questions/5838605/python-dictwriter-writing-utf-8-encoded-csv-files
 class DictWriterEx(csv.DictWriter):
