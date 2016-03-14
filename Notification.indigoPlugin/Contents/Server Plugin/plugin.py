@@ -302,6 +302,20 @@ class Plugin(indigo.PluginBase):
 		# Find the time to use for the notification
 		notificationTime = datetime.now()
 		
+		# Set to default values if not specified
+		if not u'sendEvery' in actionProps:
+			actionProps[u'sendEvery'] = u'always'
+		if not u'additionalRecipients' in actionProps:
+			actionProps[u'additionalRecipients'] = u''
+		if not u'title' in actionProps:
+			actionProps[u'title'] = u''
+		if not u'speak' in actionProps:
+			actionProps[u'speak'] = u'default'
+		if not u'logAsError' in actionProps:
+			actionProps[u'logAsError'] = u'default'
+		if not u'logType' in actionProps:
+			actionProps[u'logType'] = catProps[u'logType']
+		
 		"""# Check first if at least one method for sending is selected, and not only logs
 		if len(catProps[u'presentDeliveryMethod']) > 0 or len(catProps[u'nonPresentDeliveryMethod']) > 0:
 			sendSelected = True
