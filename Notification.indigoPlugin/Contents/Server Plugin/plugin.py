@@ -70,7 +70,7 @@ class Plugin(indigo.PluginBase):
 		
 		# Presets, not configurable
 		self.notificationVarPrefix = u'_notification_'
-		self.logDir = indigo.server.getInstallFolderPath() + u'/Logs/Notifications test/'
+		self.logDir = indigo.server.getInstallFolderPath() + u'/Logs/Notifications/'
 		self.logFileSuffix = u' Notifications.csv'
 		#self.logFileDateFormat = u'%Y-%m-%d'
 		
