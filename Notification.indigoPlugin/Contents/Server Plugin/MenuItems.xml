@@ -6,7 +6,7 @@
 	 back to the user you can post information into the Event Log.
 -->
 <MenuItems>
-    <MenuItem id="menu1">
+    <!--<MenuItem id="menu1"> REMOVED, used for testing
         <Name>Update last notification time...</Name>
         <CallbackMethod>updateLastNotificationTimeManually</CallbackMethod>
         <ButtonTitle>Update</ButtonTitle>
@@ -19,5 +19,5 @@
 				<Label>New time value (Y-m-d H:m:s):</Label>
 			</Field>
         </ConfigUI>
-    </MenuItem>
+    </MenuItem>-->
 </MenuItems>

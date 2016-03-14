@@ -56,7 +56,10 @@ class Plugin(indigo.PluginBase):
 		
 		# Plugin prefs
 		self.debug = pluginPrefs.get(u'debugLog', False)
-		self.extDebug = pluginPrefs.get(u'extensiveDebug', False)
+		if not self.debug:
+			self.extDebug = False
+		else:
+			self.extDebug = pluginPrefs.get(u'extensiveDebug', False)
 		self.pluginLog = pluginPrefs.get(u'pluginLog', True)
 		self.varFolderName = pluginPrefs.get(u'varFolderName','Notification plugin log')
 		self.alwaysUseVariables = pluginPrefs.get(u'alwaysUseVariables',False)
@@ -79,7 +82,7 @@ class Plugin(indigo.PluginBase):
 		self.numPersonPresent = 0
 		
 		# Threads
-		self.threads = []
+		#self.threads = []
 
 	########################################
 	def __del__(self):
@@ -852,7 +855,8 @@ class Plugin(indigo.PluginBase):
 	########################################
 	# update last notification time manually, mainly for testing
 	########################################
-		
+	
+	''' Removed, used for testing only
 	def updateLastNotificationTimeManually ( self, valuesDict, typeId ):
 	
 		#CLEAN UP function if used for other things
@@ -866,7 +870,7 @@ class Plugin(indigo.PluginBase):
 			return True
 		except:
 			self.errorLog(u'Could not update last notification time manually')
-			return
+			return'''
 
 	########################################
 	# UI VALIDATION
@@ -877,14 +881,23 @@ class Plugin(indigo.PluginBase):
 		#  
 		if self.extDebug: self.debugLog(u"validateDeviceConfigUi: typeId: %s  devId: %s valuesDict: %s" % (typeId, str(devId), str(valuesDict)))
 		
-		#FIX and clean this function
+		if typeId == 'notificationPerson':
+			errorDict = indigo.Dict()
+			if len(valuesDict[u'email']) == 0 and len(valuesDict[u'growlTypes']) == 0 and len(valuesDict[u'logVariable']) == 0:
+				errorDict[u'email'] = 'At least one method for notification needs to be entered'
+				errorDict[u'growlTypes'] = 'At least one method for notification needs to be entered'
+				errorDict[u'logVariable'] = 'At least one method for notification needs to be entered'
+				errorDict[u'showAlertText'] = 'Please specify at least one method for notification'
+			if len(valuesDict[u'email']) > 0 and not validateEmail(valuesDict):
+				errorDict[u'email'] = 'Invalid e-mail address specified'
+				errorDict[u'showAlertText'] = 'Invalid e-mail address specified'
+			
 		
-		dev = indigo.devices[devId]
-		
-# 		if valuesDict['enabled']:
-# 			dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
-# 		else:
-# 			dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
+		# CHECK/FIX see if this can/should be implementer		
+		# 		if valuesDict['enabled']:
+		# 			dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
+		# 		else:
+		# 			dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 			
 		return (True, valuesDict)
 		
@@ -897,7 +910,19 @@ class Plugin(indigo.PluginBase):
 	# Validate plugin prefs changes:
 	def validatePrefsConfigUi(self, valuesDict):
 		if self.extDebug: self.debugLog("validatePrefsConfigUI valuesDict: %s" % str(valuesDict))
-		return (True, valuesDict)
+		
+		errorDict = indigo.Dict()
+		if len(valuesDict[u'varFolderName']) == 0:
+			errorDict[u'varFolderName'] = 'Please specify a name for the variable folder'
+			errorDict[u'showAlertText'] = 'Please specify a name for the variable folder'
+			
+		if not valuesDict[u'debugLog']:
+			valuesDict[u'extensiveDebug'] = False
+			
+		if len(errorDict) > 0:
+			return (False, valuesDict, errorDict)
+		else:
+			return (True, valuesDict)
 		
 		
 	# def getDeviceConfigUiValues():
@@ -908,7 +933,10 @@ class Plugin(indigo.PluginBase):
 	def closedPrefsConfigUi(self, valuesDict, userCancelled):
 		# Plugin prefs
 		self.debug = self.pluginPrefs.get("debugLog", False)
-		self.extDebug = self.pluginPrefs.get(u'extensiveDebug', False)
+		if not self.debug:
+			self.extDebug = False
+		else:
+			self.extDebug = self.pluginPrefs.get(u'extensiveDebug', False)
 		self.pluginLog = self.pluginPrefs.get("pluginLog", True)
 		if self.pluginPrefs.get(u'varFolderName','Notification plugin log') != self.varFolderName:
 			#Variable folder name has changed, restart plugin

@@ -4,7 +4,7 @@
 		<Label>Debug logging:</Label>
 		<Description></Description>
 	</Field>
-	<Field type="checkbox" id="extensiveDebug" defaultValue="false">
+	<Field type="checkbox" id="extensiveDebug" defaultValue="false" enabledBindingId="debugLog">
 		<Label>Verbose debug output:</Label>
 		<Description></Description>
 	</Field>
