@@ -3,20 +3,18 @@
 	<Field type="checkbox" id="debugLog" defaultValue="false">
 		<Label>Debug logging:</Label>
 		<Description></Description>
+		<CallbackMethod>debugLogCheckboxChanged</CallbackMethod>
 	</Field>
 	<Field type="checkbox" id="extensiveDebug" defaultValue="false" enabledBindingId="debugLog">
 		<Label>Verbose debug output:</Label>
-		<Description></Description>
+		<Description>Take care, lots of debug output!</Description>
 	</Field>
-	<Field type="label" id="infoDebug" alignWithControl="true" visibleBindingId="extensiveDebug" visibleBindingValue="true">
-		<Label>Use with care, lots of debug output</Label>
+	<Field type="label" id="spacer1">
+		<Label> </Label>
 	</Field>
 	<Field type="checkbox" id="pluginLog" defaultValue="true">
 		<Label>Plugin log:</Label>
-		<Description>Log all notifications in plugin log files</Description>
-	</Field>
-	<Field type="label" id="infoPluginLog" visibleBindingId="pluginLog" visibleBindingValue="true" alignWithControl="true">
-		<Label>One log file per specified interval below will be created in the folder "Notifications" within your Indigo logs folder. Note that there are no rotation/deletion of old log files.</Label>
+		<Description>Log all notifications in plugin log files (csv/excel format)</Description>
 	</Field>
 	<Field type="menu" id="logFileFormat" visibleBindingId="pluginLog" visibleBindingValue="true" defaultValue="%Y-%m">
 		<Label>Log file format:</Label>
@@ -25,6 +23,12 @@
 			<Option value="%Y-%m">%Y-%m (one file per month)</Option>
 			<Option value="%Y">%Y (one file per year)</Option>
 		</List>
+	</Field>
+	<Field type="label" id="infoPluginLog" visibleBindingId="pluginLog" visibleBindingValue="true" alignWithControl="true">
+		<Label>One log file per specified interval above will be created in the folder "Notifications" within your Indigo logs folder. Note that there are no rotation/deletion of old log files.</Label>
+	</Field>
+	<Field type="label" id="spacer2">
+		<Label> </Label>
 	</Field>
 	<Field type="textfield" id="varFolderName" defaultValue="Notification plugin log">
 		<Label>Variable folder:</Label>

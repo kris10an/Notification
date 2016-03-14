@@ -649,6 +649,7 @@ class Plugin(indigo.PluginBase):
 		writeLog = False
 		
 		'''
+		Ref. issue #11 github
 		DISABLED, too complex user interface for this logic..
 		# Check if action has override settings
 		if actionProps[u'log'] == u'default':
@@ -1037,6 +1038,13 @@ class Plugin(indigo.PluginBase):
 		sortedDevArray.insert (0, (u"all",u"All persons"))
 		if self.extDebug: self.debugLog(u'sortedDevArray:\n%s' % unicode(sortedDevArray))
 		return sortedDevArray
+		
+	# Plugin config
+	def debugLogCheckboxChanged(self, valuesDict):
+		self.debugLog(u'debugLogCheckboxChanged called')
+		if not valuesDict[u'debugLog']:
+			valuesDict[u'extensiveDebug'] = False
+		return valuesDict
 
 
 	'''	########################################
