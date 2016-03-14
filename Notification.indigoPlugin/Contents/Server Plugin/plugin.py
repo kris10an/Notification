@@ -159,7 +159,7 @@ class Plugin(indigo.PluginBase):
 	########################################
 	
 	def deviceStartComm(self, dev):
-		#self.debugLog(u'deviceStartComm called: %s' % (str(dev)))
+		#self.debugLog(u'deviceStartComm called: %s' % (unicode(dev)))
 		self.debugLog(u'deviceStartComm called, device %s' % (dev.name))
 		
 		if dev.deviceTypeId == u'notificationPerson':
@@ -169,14 +169,14 @@ class Plugin(indigo.PluginBase):
 			self.categoryList[dev.id] = 'active'	
 			
 		if self.extDebug:
-			self.debugLog(u'personList: %s' % (str(self.personList)))
-			self.debugLog(u'personPresentList: %s' % (str(self.personPresentList)))
+			self.debugLog(u'personList: %s' % (unicode(self.personList)))
+			self.debugLog(u'personPresentList: %s' % (unicode(self.personPresentList)))
 			self.debugLog(u'numPersonPresent: %i' % (self.numPersonPresent))
-			self.debugLog(u'categoryList: %s' % (str(self.categoryList)))
-			self.debugLog(u'presenceVariableList: %s' % (str(self.presenceVariableList)))
+			self.debugLog(u'categoryList: %s' % (unicode(self.categoryList)))
+			self.debugLog(u'presenceVariableList: %s' % (unicode(self.presenceVariableList)))
 			
 	def deviceStopComm(self, dev):
-		#if self.extDebug: self.debugLog(u'deviceStopComm called: %s' % (str(dev)))
+		#if self.extDebug: self.debugLog(u'deviceStopComm called: %s' % (unicode(dev)))
 		self.debugLog(u'deviceStopComm called, device %s' % (dev.name))
 		
 		if dev.deviceTypeId == u'notificationPerson':
@@ -192,16 +192,16 @@ class Plugin(indigo.PluginBase):
 			
 		
 		if self.extDebug:
-			self.debugLog(u'personList: %s' % (str(self.personList)))
-			self.debugLog(u'personPresentList: %s' % (str(self.personPresentList)))
+			self.debugLog(u'personList: %s' % (unicode(self.personList)))
+			self.debugLog(u'personPresentList: %s' % (unicode(self.personPresentList)))
 			self.debugLog(u'numPersonPresent: %i' % (self.numPersonPresent))
-			self.debugLog(u'categoryList: %s' % (str(self.categoryList)))
+			self.debugLog(u'categoryList: %s' % (unicode(self.categoryList)))
 		
 	def deviceUpdated(self, origDev, newDev):
 		# call the base's implementation first just to make sure all the right things happen elsewhere
 		# FIX / CHECK should this be done or not?
 		indigo.PluginBase.deviceUpdated(self, origDev, newDev)
-		#if self.extDebug: self.debugLog(u'deviceUpdated called %s: \n\n\n***origDev:\n %s\n\n\n***newDev:\n %s' % (newDev.name, str(origDev), str(newDev)))
+		#if self.extDebug: self.debugLog(u'deviceUpdated called %s: \n\n\n***origDev:\n %s\n\n\n***newDev:\n %s' % (newDev.name, unicode(origDev), unicode(newDev)))
 		#else:
 		self.debugLog(u'deviceUpdated called %s' % (newDev.name))
 		
@@ -275,7 +275,7 @@ class Plugin(indigo.PluginBase):
 	########################################
 	
 	def sendNotification(self, action):
-		if self.extDebug: self.debugLog(u"sendNotification action called: props: %s" % (str(action)))
+		if self.extDebug: self.debugLog(u"sendNotification action called: props: %s" % (unicode(action)))
 		else: self.debugLog(u'sendNotification action called')
 
 		# Check if category device is valid		
@@ -293,8 +293,8 @@ class Plugin(indigo.PluginBase):
 		actionProps = action.props
 		catProps = categoryDev.pluginProps
 		catStates = categoryDev.states
-		if self.extDebug: self.debugLog(u'Notification category "%s" plugin props: %s' % (categoryDev.name, str(catProps)))
-		if self.extDebug: self.debugLog(u'Notification category "%s" states: %s' % (categoryDev.name, str(catStates)))
+		if self.extDebug: self.debugLog(u'Notification category "%s" plugin props: %s' % (categoryDev.name, unicode(catProps)))
+		if self.extDebug: self.debugLog(u'Notification category "%s" states: %s' % (categoryDev.name, unicode(catStates)))
 		
 		# Check if every notification is to be delivered, or by interval, and that interval is now exceeded
 		send = False # whether or not to send notification
@@ -323,8 +323,8 @@ class Plugin(indigo.PluginBase):
 			sendSelected = True
 			self.debugLog(u'At least one method for sending out notification selected (excluding logs)')
 			if self.extDebug:
-				self.debugLog(u'presentDeliveryMethod:\n%s' % str(catProps[u'presentDeliveryMethod']))
-				self.debugLog(u'nonPresentDeliveryMethod:\n%s' % str(catProps[u'nonPresentDeliveryMethod']))
+				self.debugLog(u'presentDeliveryMethod:\n%s' % unicode(catProps[u'presentDeliveryMethod']))
+				self.debugLog(u'nonPresentDeliveryMethod:\n%s' % unicode(catProps[u'nonPresentDeliveryMethod']))
 		else: 
 			sendSelected = False
 			self.debugLog(u'No methods for sending out notification selected (excluding logs), will not send out notification')
@@ -391,7 +391,7 @@ class Plugin(indigo.PluginBase):
 		personNameArray = []
 		variableNameArray = []
 		personDevArray = []
-		if self.extDebug: self.debugLog(u'growlsToSend:\n%s' % str(growlsToSend))
+		if self.extDebug: self.debugLog(u'growlsToSend:\n%s' % unicode(growlsToSend))
 	
 		if send:
 								
@@ -409,7 +409,7 @@ class Plugin(indigo.PluginBase):
 			else:
 				personsList = catProps[u'deliverTo']
 				
-			if self.extDebug: self.debugLog(u'personsList: %s' % str(personsList))
+			if self.extDebug: self.debugLog(u'personsList: %s' % unicode(personsList))
 			
 			# Determine who to send out notifications to
 			for personId in personsList:
@@ -475,15 +475,15 @@ class Plugin(indigo.PluginBase):
 				elif self.extDebug: self.debugLog(u'Variable logic not triggered for person "%s"' % (personDev.name))
 						
 			if self.extDebug:
-				self.debugLog(u'growlsToSend:\n%s' % str(growlsToSend))
-				self.debugLog(u'emailsToSend:\n%s' % str(emailsToSend))
-				self.debugLog(u'notifyVars:\n%s' % str(notifyVars))
+				self.debugLog(u'growlsToSend:\n%s' % unicode(growlsToSend))
+				self.debugLog(u'emailsToSend:\n%s' % unicode(emailsToSend))
+				self.debugLog(u'notifyVars:\n%s' % unicode(notifyVars))
 				
 			# Determine additional recipient given by category
 			self.debugLog(u'Determine additional recipient given by notification category, regardless of presence etc.')
 			if len(catProps[u'alwaysDeliverTo']) > 0:
 				rcptArray = catProps[u'alwaysDeliverTo'].replace(u'\n',u'').split(u',')
-				if self.extDebug: self.debugLog(u'rcptArray: %s' % (str(rcptArray)))
+				if self.extDebug: self.debugLog(u'rcptArray: %s' % (unicode(rcptArray)))
 				for rcpt in rcptArray:
 					rcpt = rcpt.split(u':')
 					if rcpt[0].strip() == u'email':
@@ -498,7 +498,7 @@ class Plugin(indigo.PluginBase):
 			self.debugLog(u'Determine additional recipient given by notification action, regardless of presence etc.')
 			if len(actionProps[u'additionalRecipients']) > 0:
 				rcptArray = actionProps[u'additionalRecipients'].replace(u'\n',u'').split(u',')
-				if self.extDebug: self.debugLog(u'rcptArray: %s' % (str(rcptArray)))
+				if self.extDebug: self.debugLog(u'rcptArray: %s' % (unicode(rcptArray)))
 				for rcpt in rcptArray:
 					rcpt = rcpt.split(u':')
 					if rcpt[0].strip() == u'email':
@@ -530,7 +530,7 @@ class Plugin(indigo.PluginBase):
 			if len(growlsToSend) > 0:
 				# remove possible duplicates
 				growlsToSend = set(growlsToSend)
-				if self.extDebug: self.debugLog(u'Starting sending growl notifications, growlsToSend: %s' % str(growlsToSend))
+				if self.extDebug: self.debugLog(u'Starting sending growl notifications, growlsToSend: %s' % unicode(growlsToSend))
 				growlPlugin = indigo.server.getPlugin("com.perceptiveautomation.indigoplugin.growl")		
 				if growlPlugin.isEnabled():		
 					for growlType in growlsToSend:
@@ -547,7 +547,7 @@ class Plugin(indigo.PluginBase):
 			if len(emailsToSend) > 0:
 				# remove possible duplicates
 				emailsToSend = set(emailsToSend)
-				if self.extDebug: self.debugLog(u'Starting sending e-mail notifications, emailsToSend: %s' % str(emailsToSend))
+				if self.extDebug: self.debugLog(u'Starting sending e-mail notifications, emailsToSend: %s' % unicode(emailsToSend))
 				for rcpt in emailsToSend:
 					self.debugLog(u'E-mail notification to %s with subject "%s" being sent' % (rcpt, emailSubject))
 					indigo.server.sendEmailTo(rcpt, subject=emailSubject, body=emailBody)
@@ -557,7 +557,7 @@ class Plugin(indigo.PluginBase):
 			if len(notifyVars) > 0:
 				# remove possible duplicates
 				notifyVars = set(notifyVars)
-				if self.extDebug: self.debugLog(u'Starting writing variable notifications, notifyVars: %s' % str(notifyVars))
+				if self.extDebug: self.debugLog(u'Starting writing variable notifications, notifyVars: %s' % unicode(notifyVars))
 				for nVarId in notifyVars:
 					try:
 						nVar = indigo.variables[nVarId]
@@ -759,17 +759,17 @@ class Plugin(indigo.PluginBase):
 					u'Notification'			: notificationText,
 					u'Log type'				: logType,
 					u'Title'				: title,
-					u'Is error'				: str(logAsError),
+					u'Is error'				: unicode(logAsError),
 					u'Category'				: categoryDev.name,
 					u'Persons'				: u', '.join(personNameArray),
-					u'Number present'		: str(numPresent),
+					u'Number present'		: unicode(numPresent),
 					u'E-mail recipients'	: u', '.join(emailsToSend),
 					u'Growl types'			: u', '.join(growlsToSend),
-					u'Growl priority'		: str(catProps[u'growlPriority']),
-					u'Growl sticky'			: str(catProps[u'growlSticky']),
+					u'Growl priority'		: unicode(catProps[u'growlPriority']),
+					u'Growl sticky'			: unicode(catProps[u'growlSticky']),
 					u'Variables' 			: u', '.join(variableNameArray) }
 					
-				if self.extDebug: self.debugLog(u'Information for plugin log entry: %s' % (str(logFileEntry)))
+				if self.extDebug: self.debugLog(u'Information for plugin log entry: %s' % (unicode(logFileEntry)))
 				
 				result = self.writeLogFile(logFileEntry)
 				sentOrLog = True
@@ -801,7 +801,7 @@ class Plugin(indigo.PluginBase):
 				self.debugLog(u'Variable "%s" does not exist, creating it' % (variableNameStr))
 				try:
 					notificationVar = indigo.variable.create(variableNameStr, value=u'none', folder=self.varFolderId)
-					self.debugLog(u'Created variable "%s" with id "%s"' % (variableNameStr, str(notificationVar.id)))
+					self.debugLog(u'Created variable "%s" with id "%s"' % (variableNameStr, unicode(notificationVar.id)))
 				except:
 					self.errorLog(u'Could not create variable "%s" in folder "%s"' % (variableNameStr, self.varFolderName))
 			else:
@@ -811,13 +811,13 @@ class Plugin(indigo.PluginBase):
 				except:
 					self.errorLog(u'Could not get variable "%s"' % (variableNameStr))
 			
-			if self.extDebug: self.debugLog(u'notification log variable: %s' % (str(notificationVar)))
+			if self.extDebug: self.debugLog(u'notification log variable: %s' % (unicode(notificationVar)))
 			# set variable value
 			# Format: <Timestamp><tab><Notification text><tab><Notification category device id>
 			# Indigo doesn't have a last changed attribute of the variable, so timestamp needs to be inserted
 			try:
 				if self.extDebug: self.debugLog(u'Setting value of variable "%s"' % (variableNameStr))
-				varStr = strvartime.timeToStr() + u'\t' + actionProps[u'text'] + u'\t' + str(categoryDev.id)
+				varStr = strvartime.timeToStr() + u'\t' + actionProps[u'text'] + u'\t' + unicode(categoryDev.id)
 				if self.extDebug: self.debugLog(u'varStr: %s' % (varStr))
 				indigo.variable.updateValue(notificationVar, varStr)
 				self.debugLog(u'Value of variable "%s" set to: %s' % (variableNameStr, varStr))
@@ -850,7 +850,7 @@ class Plugin(indigo.PluginBase):
 			categoryDev.updateStateOnServer(u'lastNotifiedPersons', u', '.join(personNameArray))
 			categoryDev.stateListOrDisplayStateIdChanged()
 			
-		#self.debugLog(u"%s" % str(categoryDev))
+		#self.debugLog(u"%s" % unicode(categoryDev))
 
 	########################################
 	# update last notification time manually, mainly for testing
@@ -861,7 +861,7 @@ class Plugin(indigo.PluginBase):
 	
 		#CLEAN UP function if used for other things
 		
-		if self.extDebug: self.debugLog(u"updateLastNotificationTimeManually action called: props: %s" % (str(valuesDict)))
+		if self.extDebug: self.debugLog(u"updateLastNotificationTimeManually action called: props: %s" % (unicode(valuesDict)))
 		
 		try:
 			dev = indigo.devices[int(valuesDict[u'targetDevice'])]
@@ -879,7 +879,7 @@ class Plugin(indigo.PluginBase):
 	# Validate device configuration
 	def validateDeviceConfigUi(self, valuesDict, typeId, devId):
 		#  
-		if self.extDebug: self.debugLog(u"validateDeviceConfigUi: typeId: %s  devId: %s valuesDict: %s" % (typeId, str(devId), str(valuesDict)))
+		if self.extDebug: self.debugLog(u"validateDeviceConfigUi: typeId: %s  devId: %s valuesDict: %s" % (typeId, unicode(devId), unicode(valuesDict)))
 		
 		if typeId == 'notificationPerson':
 			errorDict = indigo.Dict()
@@ -904,12 +904,12 @@ class Plugin(indigo.PluginBase):
 	# Validate action configuration
 	def validateActionConfigUi(self, valuesDict, typeId, devId):
 		# 
-		if self.extDebug: self.debugLog(u"validateActionConfigUi: typeId: %s  devId: %s  valuesDict: %s" % (typeId, str(devId), str(valuesDict)))
+		if self.extDebug: self.debugLog(u"validateActionConfigUi: typeId: %s  devId: %s  valuesDict: %s" % (typeId, unicode(devId), unicode(valuesDict)))
 		return (True, valuesDict)
 		
 	# Validate plugin prefs changes:
 	def validatePrefsConfigUi(self, valuesDict):
-		if self.extDebug: self.debugLog("validatePrefsConfigUI valuesDict: %s" % str(valuesDict))
+		if self.extDebug: self.debugLog("validatePrefsConfigUI valuesDict: %s" % unicode(valuesDict))
 		
 		errorDict = indigo.Dict()
 		if len(valuesDict[u'varFolderName']) == 0:
@@ -997,7 +997,7 @@ class Plugin(indigo.PluginBase):
 			devArray.append ( (dev.id,dev.name) )
 		sortedDevArray = sorted ( devArray, key = operator.itemgetter(1))
 		sortedDevArray.insert (0, (u"all",u"All persons"))
-		if self.extDebug: self.debugLog(u'sortedDevArray:\n%s' % str(sortedDevArray))
+		if self.extDebug: self.debugLog(u'sortedDevArray:\n%s' % unicode(sortedDevArray))
 		return sortedDevArray
 
 
@@ -1038,13 +1038,13 @@ class Plugin(indigo.PluginBase):
 # 		# iterate through "person" devices"
 # 		for dev in indigo.devices.iter(pluginId + u'.notificationPerson'):
 # 			devProps = dev.pluginProps
-# 			if self.extDebug: self.debugLog(u'"%s" person notification device pluginProps: %s' % (dev.name, str(devProps)))
+# 			if self.extDebug: self.debugLog(u'"%s" person notification device pluginProps: %s' % (dev.name, unicode(devProps)))
 # 			try:
 # 				# Set state of presence based on variable given in device config UI
 # 				presenceVar = indigo.variables[int(devProps['presenceVariable'])]
 # 				dev.updateStateOnServer('present',presenceVar.getValue(bool, default=True))
 # 				if presenceVar.getValue(bool, default=True): i = i + 1 # person is present
-# 				self.debugLog(u'"%s" person device presence set to: %s' % (dev.name, str(presenceVar.getValue(bool, default=True))))
+# 				self.debugLog(u'"%s" person device presence set to: %s' % (dev.name, unicode(presenceVar.getValue(bool, default=True))))
 # 			except:
 # 				if errorIfNotSuccessful: self.errorLog(u'Could not get presence of person "%s", please check settings. Presence set to true as default' % dev.name)
 # 				# Most likely no variable for presence is given, set to being present as it's "safer" to receive notification than not
@@ -1057,7 +1057,7 @@ class Plugin(indigo.PluginBase):
 		if self.extDebug: self.debugLog(u'personUpdatePresence called')
 	
 		devProps = dev.pluginProps
-		if self.extDebug: self.debugLog(u'"%s" person notification device pluginProps: %s' % (dev.name, str(devProps)))
+		if self.extDebug: self.debugLog(u'"%s" person notification device pluginProps: %s' % (dev.name, unicode(devProps)))
 
 		# Check if presence variable is set
 		if len(devProps[u'presenceVariable']) > 0:
@@ -1065,7 +1065,7 @@ class Plugin(indigo.PluginBase):
 				# Get value of indigo variable
 				presenceVar = indigo.variables[int(devProps[u'presenceVariable'])]
 				dev.updateStateOnServer(u'present', presenceVar.getValue(bool, default=True))
-				self.debugLog(u'"%s" person device presence set to: %s' % (dev.name, str(presenceVar.getValue(bool, default=True))))
+				self.debugLog(u'"%s" person device presence set to: %s' % (dev.name, unicode(presenceVar.getValue(bool, default=True))))
 				self.presenceVariableList[presenceVar.id] = dev.id
 			except:
 				if errorIfNotSuccessful: self.errorLog(u'Could not get presence of person "%s", please check settings. Presence set to true as default' % dev.name)
@@ -1142,7 +1142,7 @@ class Plugin(indigo.PluginBase):
 		if self.checkAndCreateLogFile():
 			if self.extDebug: self.debugLog(u'Checked log file OK')
 			#try:
-			if self.extDebug: self.debugLog(u'Writing to plugin log file: %s' % (str(wDict)))
+			if self.extDebug: self.debugLog(u'Writing to plugin log file: %s' % (unicode(wDict)))
 			fp = open(self.logFile, 'ab')
 			writer = DictWriterEx(fp, logFileHeadings, dialect='excel', delimiter=';')
 			writer.writerow(dict((k, v.encode('utf-8')) for k, v in wDict.iteritems()))
