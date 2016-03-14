@@ -478,7 +478,8 @@ class Plugin(indigo.PluginBase):
 				self.debugLog(u'growlsToSend:\n%s' % unicode(growlsToSend))
 				self.debugLog(u'emailsToSend:\n%s' % unicode(emailsToSend))
 				self.debugLog(u'notifyVars:\n%s' % unicode(notifyVars))
-				
+			
+			# FIX join below two section	
 			# Determine additional recipient given by category
 			self.debugLog(u'Determine additional recipient given by notification category, regardless of presence etc.')
 			if len(catProps[u'alwaysDeliverTo']) > 0:
@@ -901,14 +902,17 @@ class Plugin(indigo.PluginBase):
 				return (False, valuesDict, errorDict)
 				
 			if (len(valuesDict[u'presentDeliveryMethod']) > 0 or len(valuesDict[u'nonPresentDeliveryMethod']) > 0) and len(valuesDict[u'deliverTo']) == 0:
-				errorDict[u'deliverTo'] = errorDict[u'presentDeliveryMethod'] = errorDict[u'nonPresentDeliveryMethod'] = errorDict[u'showAlertText'] = 'At least one personal (e-mail, growl, variable) delivery method is selected, please select at least one person for delivery'
+				errorDict[u'deliverTo'] = errorDict[u'presentDeliveryMethod'] = errorDict[u'nonPresentDeliveryMethod'] = errorDict[u'showAlertText'] = 'Personal delivery method(s) (e-mail, growl, variable) is selected, please select at least one person for delivery'
 				return (False, valuesDict, errorDict)
 				
 			if (u'growl' in valuesDict[u'presentDeliveryMethod'] or u'growl' in valuesDict[u'nonPresentDeliveryMethod']) and len(valuesDict[u'growlTypes']) == 0:
 				errorDict[u'growlTypes'] = errorDict[u'showAlertText'] = u'Growl is selected as delivery method -> please specify at least one growl type'
 				return (False, valuesDict, errorDict)
 				
-			# FIX validation for always deliver to
+			if len(valuesDict[u'alwaysDeliverTo']) > 0:
+				if not self.validateDeliveryMethods(valuesDict[u'alwaysDeliverTo']):
+					errorDict[u'alwaysDeliverTo'] = errorDict[u'showAlertText'] = u'Invalid entry for Always deliver to.\nValid syntax:\nemail: john@doe.com, email: jack@email.com'
+					return (False, valuesDict, errorDict)
 			
 			
 		if len(errorDict) > 0:
@@ -927,6 +931,18 @@ class Plugin(indigo.PluginBase):
 	def validateActionConfigUi(self, valuesDict, typeId, devId):
 		# 
 		if self.extDebug: self.debugLog(u"validateActionConfigUi: typeId: %s  devId: %s  valuesDict: %s" % (typeId, unicode(devId), unicode(valuesDict)))
+
+		errorDict = indigo.Dict()
+		
+		if len(valuesDict[u'text']) == 0:
+			errorDict[u'text'] = errorDict[u'showAlertText'] = u'Please enter a notification text'
+			return (False, valuesDict, errorDict)
+
+		if len(valuesDict[u'additionalRecipients']) > 0:
+			if not self.validateDeliveryMethods(valuesDict[u'additionalRecipients']):
+				errorDict[u'additionalRecipients'] = errorDict[u'showAlertText'] = u'Invalid entry for Additional recipients.\nValid syntax:\nemail: john@doe.com, email: jack@email.com'
+				return (False, valuesDict, errorDict)
+		
 		return (True, valuesDict)
 		
 	# Validate plugin prefs changes:
@@ -998,7 +1014,7 @@ class Plugin(indigo.PluginBase):
 		self.debugLog(u'nonPersonalDeliveryMethodsList called')
 		myArray = [
 			(u"log",u"Indigo Log"),
-			(u"notificationLog",u"Notification plugin log (csv file)"),
+			(u"notificationLog",u"Notification plugin log (csv file)z"),
 			(u"speak",u"Speak")]
 		return myArray
 		
@@ -1058,6 +1074,34 @@ class Plugin(indigo.PluginBase):
 
 		return False
 		
+	# Validate delivery methods (additional recipients, always deliver to)
+	# Syntax : email:ola@nordmann.no,email:john@gmail.com
+	# Possibility for adding other options in the future
+	def validateDeliveryMethods(self, str):
+		if self.extDebug: self.debugLog(u'validateDeliveryMethods called, rcptArray: %s' % (str))
+		rcptArray = str.replace(u'\n',u'').split(u',')
+		testArray = str.replace(u'\n',u'').split(u':')
+		if len(rcptArray) != len(testArray)-1:
+			return False
+		
+		i = 0 # Check count
+		for rcpt in rcptArray:
+			i = i+1
+			rcpt = rcpt.split(u':')
+			if rcpt[0].strip() == u'email':
+				email = rcpt[1].strip()
+				if self.validateEmail(email):
+					if self.extDebug: self.debugLog(u'validateDeliveryMethods, e-mail address validated: %s' % (email))
+				else:
+					return False
+			else:
+				return False	
+				
+		if i > 0:
+			return True
+		else:
+			return False
+	
 	
 	# Update presence state of persons
 	
