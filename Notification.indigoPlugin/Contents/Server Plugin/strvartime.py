@@ -4,11 +4,11 @@ strtime.py
 
 """
 
-try:
+'''try:
     import indigo
 except ImportError:
     print u"Attachments can only be used from within Indigo"
-    raise ImportError
+    raise ImportError'''
     
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
