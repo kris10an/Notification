@@ -634,7 +634,7 @@ class Plugin(indigo.PluginBase):
 				except:
 					self.errorLog(u'Could not execute action group specified before speech')
 			try:
-				indigo.server.speak(notification, waitUntilDone=True)
+				indigo.server.speak(notificationText, waitUntilDone=True)
 			except:
 				self.errorLog(u'Could not speak notification')
 			if len(catProps[u'afterSpeakActionGroup']) > 0:
@@ -881,17 +881,39 @@ class Plugin(indigo.PluginBase):
 		#  
 		if self.extDebug: self.debugLog(u"validateDeviceConfigUi: typeId: %s  devId: %s valuesDict: %s" % (typeId, unicode(devId), unicode(valuesDict)))
 		
+		errorDict = indigo.Dict()
+		
 		if typeId == 'notificationPerson':
-			errorDict = indigo.Dict()
 			if len(valuesDict[u'email']) == 0 and len(valuesDict[u'growlTypes']) == 0 and len(valuesDict[u'logVariable']) == 0:
-				errorDict[u'email'] = 'At least one method for notification needs to be entered'
-				errorDict[u'growlTypes'] = 'At least one method for notification needs to be entered'
-				errorDict[u'logVariable'] = 'At least one method for notification needs to be entered'
-				errorDict[u'showAlertText'] = 'Please specify at least one method for notification'
-			if len(valuesDict[u'email']) > 0 and not validateEmail(valuesDict):
-				errorDict[u'email'] = 'Invalid e-mail address specified'
-				errorDict[u'showAlertText'] = 'Invalid e-mail address specified'
+				errorDict[u'email'] = u'At least one method for notification needs to be entered'
+				errorDict[u'growlTypes'] = u'At least one method for notification needs to be entered'
+				errorDict[u'logVariable'] = u'At least one method for notification needs to be entered'
+				errorDict[u'showAlertText'] = u'Please specify at least one method for notification'
+			if len(valuesDict[u'email']) > 0 and not self.validateEmail(valuesDict[u'email']):
+				errorDict[u'email'] = u'Invalid e-mail address specified'
+				errorDict[u'showAlertText'] = u'Invalid e-mail address specified'
+				
+		
+		if typeId == 'notificationCategory':
 			
+			if len(valuesDict[u'logType']) == 0:
+				errorDict[u'logType'] = errorDict[u'showAlertText'] = u'Please specify a valid title / log type'
+				return (False, valuesDict, errorDict)
+				
+			if (len(valuesDict[u'presentDeliveryMethod']) > 0 or len(valuesDict[u'nonPresentDeliveryMethod']) > 0) and len(valuesDict[u'deliverTo']) == 0:
+				errorDict[u'deliverTo'] = errorDict[u'presentDeliveryMethod'] = errorDict[u'nonPresentDeliveryMethod'] = errorDict[u'showAlertText'] = 'At least one personal (e-mail, growl, variable) delivery method is selected, please select at least one person for delivery'
+				return (False, valuesDict, errorDict)
+				
+			if (u'growl' in valuesDict[u'presentDeliveryMethod'] or u'growl' in valuesDict[u'nonPresentDeliveryMethod']) and len(valuesDict[u'growlTypes']) == 0:
+				errorDict[u'growlTypes'] = errorDict[u'showAlertText'] = u'Growl is selected as delivery method -> please specify at least one growl type'
+				return (False, valuesDict, errorDict)
+				
+			# FIX validation for always deliver to
+			
+			
+		if len(errorDict) > 0:
+			return (False, valuesDict, errorDict)
+		
 		
 		# CHECK/FIX see if this can/should be implementer		
 		# 		if valuesDict['enabled']:
@@ -909,12 +931,12 @@ class Plugin(indigo.PluginBase):
 		
 	# Validate plugin prefs changes:
 	def validatePrefsConfigUi(self, valuesDict):
-		if self.extDebug: self.debugLog("validatePrefsConfigUI valuesDict: %s" % unicode(valuesDict))
+		if self.extDebug: self.debugLog(u"validatePrefsConfigUI valuesDict: %s" % unicode(valuesDict))
 		
 		errorDict = indigo.Dict()
 		if len(valuesDict[u'varFolderName']) == 0:
-			errorDict[u'varFolderName'] = 'Please specify a name for the variable folder'
-			errorDict[u'showAlertText'] = 'Please specify a name for the variable folder'
+			errorDict[u'varFolderName'] = u'Please specify a name for the variable folder'
+			errorDict[u'showAlertText'] = u'Please specify a name for the variable folder'
 			
 		if not valuesDict[u'debugLog']:
 			valuesDict[u'extensiveDebug'] = False
@@ -976,7 +998,7 @@ class Plugin(indigo.PluginBase):
 		self.debugLog(u'nonPersonalDeliveryMethodsList called')
 		myArray = [
 			(u"log",u"Indigo Log"),
-			(u"notificationLog",u"Notification plugin log"),
+			(u"notificationLog",u"Notification plugin log (csv file)"),
 			(u"speak",u"Speak")]
 		return myArray
 		
@@ -1023,8 +1045,18 @@ class Plugin(indigo.PluginBase):
 	
 	# Validate e-mail addres:
 	def validateEmail(self, emailStr):
-		# FIX something here
-		return True
+		# very simple e-mail validation
+		if len(emailStr) >= 7:
+			if self.extDebug: self.debugLog(u'E-mail over 6 characters')
+			pos = emailStr.find(u'@',1)
+			if pos != -1:
+				if self.extDebug: self.debugLog(u'@ found in e-mail')
+				pos2 = emailStr.find(u'.',pos)
+				if pos2 != -1:
+					if self.extDebug: self.debugLog(u'. found in e-mail after @')
+					return True
+
+		return False
 		
 	
 	# Update presence state of persons
