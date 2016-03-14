@@ -13,7 +13,6 @@ import operator
 from datetime import datetime
 import strvartime
 import csv
-import thread, threading
 
 # Note the "indigo" module is automatically imported and made available inside
 # our global name space by the host process.
@@ -619,13 +618,27 @@ class Plugin(indigo.PluginBase):
 			
 		# Perform speech
 		if speech:
-			self.debugLog(u'Speaking notification, starting separate thread for speech')
-			thread.start_new_thread( speakNotification, (notificationText, catProps[u'beforeSpeakActionGroup'], catProps[u'afterSpeakActionGroup'] ) )
+			self.debugLog(u'Speaking notification and waiting until finished')
+			#thread.start_new_thread( speakNotification, (notificationText, catProps[u'beforeSpeakActionGroup'], catProps[u'afterSpeakActionGroup'] ) )
 			#speakThread = speakNotificationThread(notificationText, catProps[u'beforeSpeakActionGroup'], catProps[u'afterSpeakActionGroup'] )
 			#speakThread.start()
 			#self.threads.append(speakThread)
 			#speakThread.join()
-			if self.extDebug: self.debugLog(u'Thread for speech notification started')
+			#if self.extDebug: self.debugLog(u'Thread for speech notification started')
+			if len(catProps[u'beforeSpeakActionGroup']) > 0:
+				try:
+					indigo.actionGroup.execute(int(catProps[u'beforeSpeakActionGroup']))
+				except:
+					self.errorLog(u'Could not execute action group specified before speech')
+			try:
+				indigo.server.speak(notification, waitUntilDone=True)
+			except:
+				self.errorLog(u'Could not speak notification')
+			if len(catProps[u'afterSpeakActionGroup']) > 0:
+				try:
+					indigo.actionGroup.execute(int(catProps[u'afterSpeakActionGroup']))
+				except:
+					self.errorLog(u'Could not execute action group specified after speech')
 			sentOrLog = True
 		
 		# Indigo log and notification plugin log
@@ -1114,31 +1127,6 @@ class Plugin(indigo.PluginBase):
 			self.errorLog(u'Could not get or create plugin log file %s' % (self.logFile))
 			return False
 		
-
-# http://www.tutorialspoint.com/python/python_multithreading.htm			
-class speakNotificationThread (threading.Thread):
-    def __init__(self, notification, beforeAG, afterAG):
-        threading.Thread.__init__(self)
-        self.notification = notification
-        self.beforeAG = beforeAG
-        self.afterAG = afterAG
-        #self.nplugin = nplugin
-    def run(self):
-        indigo.server.log( "Starting speak thread--")
-        speakNotification(self.notification, self.beforeAG, self.afterAG)
-        #Plugin.speakNotification(self.notification, self.beforeAG, self.afterAG)
-        indigo.server.log( "Exiting speak thread--")
-        
-def speakNotification(notification, beforeAG, afterAG):
-	#self.debugLog(u'speakNotification called')
-	if len(beforeAG) > 0:
-		#ag1 = indigo.actionGroups[int(beforeAG)]
-		indigo.actionGroup.execute(int(beforeAG))
-	indigo.server.speak(notification, waitUntilDone=True)
-	if len(afterAG) > 0:
-		indigo.actionGroup.execute(int(afterAG))
-		
-
 # from http://stackoverflow.com/questions/5838605/python-dictwriter-writing-utf-8-encoded-csv-files
 class DictWriterEx(csv.DictWriter):
     def writeheader(self):
