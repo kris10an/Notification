@@ -79,7 +79,7 @@ Notification delivery options</Label>
 			<State id="present">
 				<ValueType boolType="YesNo">Boolean</ValueType>
 				<TriggerLabel>Present</TriggerLabel>
-				<ControlPageLabel>Person is present</ControlPageLabel>
+				<ControlPageLabel>Present</ControlPageLabel>
 			</State>
 			<State id="usePresence">
 				<ValueType>Boolean</ValueType>
@@ -256,10 +256,10 @@ Please remember that persons may be omitted from notification due to not being p
 				<TriggerLabel>Last notification time</TriggerLabel>
 				<ControlPageLabel>Last notification time</ControlPageLabel>
 			</State>
-			<State id="lastLogTime">
+			<State id="lastLogType">
 				<ValueType>String</ValueType>
-				<TriggerLabel>Last log time</TriggerLabel>
-				<ControlPageLabel>Last log time</ControlPageLabel>
+				<TriggerLabel>Last log type</TriggerLabel>
+				<ControlPageLabel>Last log type</ControlPageLabel>
 			</State>
 			<State id="lastNotificationIdentifier">
 				<ValueType>String</ValueType>

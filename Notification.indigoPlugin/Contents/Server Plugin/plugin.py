@@ -203,6 +203,14 @@ class Plugin(indigo.PluginBase):
 		#else:
 		self.debugLog(u'deviceUpdated called %s' % (newDev.name))
 		
+		if origDev.deviceTypeId != newDev.deviceTypeId:
+			self.debugLog(u'Device type changed, restarting device %s' % (newDev.name))
+			# FIX still some error being thrown when changing device type
+			self.deviceStopComm(newDev)
+			if newDev.enabled:
+				self.deviceStartComm(newDev)
+			return
+		
 		if newDev.deviceTypeId == u'notificationPerson':
 			if origDev.pluginProps[u'presenceVariable'] != newDev.pluginProps[u'presenceVariable']:
 				self.personUpdatePresence(newDev)
@@ -217,8 +225,6 @@ class Plugin(indigo.PluginBase):
 				self.deviceStartComm(newDev)
 			else:
 				self.deviceStopComm(newDev)
-				
-		# FIX implement logic for change of device type?
 
 	########################################
 	# Change to device, perform necessary actions
@@ -291,6 +297,7 @@ class Plugin(indigo.PluginBase):
 		# Check if every notification is to be delivered, or by interval, and that interval is now exceeded
 		send = False # whether or not to send notification
 		sent = False # whether or not notification has actually been sent
+		sentOrLog = False # whether or not notification has actually been sent, or logged, or spoken etc.
 		
 		# Find the time to use for the notification
 		notificationTime = datetime.now()
@@ -367,6 +374,7 @@ class Plugin(indigo.PluginBase):
 		notifyVars = []
 		personNameArray = []
 		variableNameArray = []
+		personDevArray = []
 		if self.extDebug: self.debugLog(u'growlsToSend:\n%s' % str(growlsToSend))
 	
 		if send:
@@ -389,12 +397,15 @@ class Plugin(indigo.PluginBase):
 			
 			# Determine who to send out notifications to
 			for personId in personsList:
+				
 				try:
 					personDev = indigo.devices[int(personId)]
 					personNameArray.append(personDev.name)
 				except:
 					self.errorLog(u'Could not get person device "%i", delivery of notification could not be retrieved.\nNotification text:%s' % (int(personId), actionProps[u'text']))
 					continue
+					
+				personDevArray.append(personDev)
 				
 				# if option for "all if none present" is selected, handle all as present
 				if catProps[u'notifyAllIfNonePresent'] and numPresent == 0:
@@ -545,7 +556,8 @@ class Plugin(indigo.PluginBase):
 						sent = True
 
 		# LOG AND SPEECH
-		# Perform regardless of presence settings etc.	
+		# Perform regardless of presence settings etc.
+		sentOrLog = sent # start with initial value of sent variable
 		
 		# Check speech settings
 		speech = False
@@ -600,6 +612,7 @@ class Plugin(indigo.PluginBase):
 			#self.threads.append(speakThread)
 			#speakThread.join()
 			if self.extDebug: self.debugLog(u'Thread for speech notification started')
+			sentOrLog = True
 		
 		# Indigo log and notification plugin log
 		writeLog = False
@@ -703,6 +716,7 @@ class Plugin(indigo.PluginBase):
 					logEntryStr = notificationText
 				self.debugLog(u'Making indigo log entry')
 				indigo.server.log(notificationText, isError=logAsError, type=logType)
+				sentOrLog = True
 			
 			# Write notification plugin log entry
 			if u'notificationLog' in catProps[u'nonPersonalDeliveryMethod'] and self.pluginLog:
@@ -728,6 +742,7 @@ class Plugin(indigo.PluginBase):
 				if self.extDebug: self.debugLog(u'Information for plugin log entry: %s' % (str(logFileEntry)))
 				
 				result = self.writeLogFile(logFileEntry)
+				sentOrLog = True
 				
 				if result:
 					self.debugLog(u'Plugin log entry made to %s' % (self.logFile))
@@ -746,7 +761,8 @@ class Plugin(indigo.PluginBase):
 		# Update notification action variable if not sendEvery or if set in plugin config
 		# For now, variable and device states is updated if send=True, not if sent=True
 		# Believe this is most correct, as log etc. might be written even if no persons are directly notified
-		if (send and actionProps[u'sendEvery'] != u'always') or self.alwaysUseVariables:
+		# 14.03: Changed to sentOrLog variable
+		if (sentOrLog and actionProps[u'sendEvery'] != u'always') or self.alwaysUseVariables:
 			variableNameStr = self.notificationVarPrefix + actionProps[u'identifier']
 			if self.extDebug: self.debugLog(u'Setting to update variable "%s"' % (variableNameStr))
 			# Check if variable exists
@@ -770,7 +786,7 @@ class Plugin(indigo.PluginBase):
 			# Format: <Timestamp><tab><Notification text><tab><Notification category device id>
 			# Indigo doesn't have a last changed attribute of the variable, so timestamp needs to be inserted
 			try:
-				self.debugLog(u'Setting value of variable "%s"' % (variableNameStr))
+				if self.extDebug: self.debugLog(u'Setting value of variable "%s"' % (variableNameStr))
 				varStr = strvartime.timeToStr() + u'\t' + actionProps[u'text'] + u'\t' + str(categoryDev.id)
 				if self.extDebug: self.debugLog(u'varStr: %s' % (varStr))
 				indigo.variable.updateValue(notificationVar, varStr)
@@ -778,8 +794,31 @@ class Plugin(indigo.PluginBase):
 			except:
 				self.errorLog(u'Could not update value of variable "%s"' % (variableNameStr))
 				
-		# Update device states			
-		categoryDev.updateStateOnServer("lastNotificationTime", strvartime.timeToStr())
+		# Update device states	
+		if sentOrLog:
+			for personDev in personDevArray:
+				# FIX is there a way to update all states simultaneously? Tried below, but does not work
+				self.debugLog(u'Updating device states for "%s"' % (personDev.name))
+				'''personDev.states[u'lastNotificationTime'] = strvartime.timeToStr(notificationTime)
+				personDev.states[u'lastNotificationTime.ui'] = strvartime.timeToStr(notificationTime, format='short')
+				personDev.states[u'lastNotificationIdentifier'] = identifier
+				personDev.states[u'lastNotificationText'] = notificationText
+				personDev.states[u'lastNotificationCategory'] = categoryDev.name
+				personDev.replaceOnServer()
+				personDev.stateListOrDisplayStateIdChanged()'''
+				personDev.updateStateOnServer(u'lastNotificationTime', strvartime.timeToStr(notificationTime), uiValue=strvartime.timeToStr(notificationTime, format='short'))
+				personDev.updateStateOnServer(u'lastNotificationIdentifier', identifier)
+				personDev.updateStateOnServer(u'lastNotificationText', notificationText)
+				personDev.updateStateOnServer(u'lastNotificationCategory', categoryDev.name)
+				personDev.stateListOrDisplayStateIdChanged()
+				
+			self.debugLog(u'Update notification category device states')
+			categoryDev.updateStateOnServer(u'lastNotificationTime', strvartime.timeToStr(notificationTime), uiValue=strvartime.timeToStr(notificationTime, format='short'))
+			categoryDev.updateStateOnServer(u'lastNotificationIdentifier', identifier)
+			categoryDev.updateStateOnServer(u'lastNotificationText', notificationText)
+			categoryDev.updateStateOnServer(u'lastLogType', logType)
+			categoryDev.updateStateOnServer(u'lastNotifiedPersons', u', '.join(personNameArray))
+			categoryDev.stateListOrDisplayStateIdChanged()
 			
 		#self.debugLog(u"%s" % str(categoryDev))
 
