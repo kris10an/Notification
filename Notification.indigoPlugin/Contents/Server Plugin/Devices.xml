@@ -226,7 +226,7 @@ Speech options (action groups)</Label>
 			</Field>
 			<Field id="simpleSeparator" type="separator" visibleBindingId="nonPersonalDeliveryMethod" visibleBindingValue="speak"/>
 			<Field type="menu" id="speak" defaultValue="ifPresent" visibleBindingId="nonPersonalDeliveryMethod" visibleBindingValue="speak">
-				<Label>Speak:</Label>
+				<Label>Speak (presence):</Label>
 				<List>
 					<Option value="ifPresent">If someone present</Option>
 					<Option value="always">Always</Option>

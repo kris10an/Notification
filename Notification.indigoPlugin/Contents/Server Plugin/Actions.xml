@@ -75,6 +75,9 @@ Syntax: email:john@doe.com,email:mrjones@hotmail.com</Label>
 					<Option value="never">Never</Option>
 				</List>
 			</Field>
+			<Field type="label" id="speakGuidance" alignWithControl="true">
+				<Label>Above is with presence in mind</Label>
+			</Field>
 			<!-- DISABLED due to complexity
 			<Field type="menu" id="log" defaultValue="default">
 				<Label>Log:</Label>

@@ -621,7 +621,7 @@ class Plugin(indigo.PluginBase):
 			speech = True
 			
 		# Perform speech
-		if speech:
+		if speech and send: # send - use frequency setting from delivery methods
 			self.debugLog(u'Speaking notification and waiting until finished')
 			#thread.start_new_thread( speakNotification, (notificationText, catProps[u'beforeSpeakActionGroup'], catProps[u'afterSpeakActionGroup'] ) )
 			#speakThread = speakNotificationThread(notificationText, catProps[u'beforeSpeakActionGroup'], catProps[u'afterSpeakActionGroup'] )
@@ -644,6 +644,8 @@ class Plugin(indigo.PluginBase):
 				except:
 					self.errorLog(u'Could not execute action group specified after speech')
 			sentOrLog = True
+		else:
+			self.debugLog(u'Speech not performed due to settings')
 		
 		# Indigo log and notification plugin log
 		writeLog = False
