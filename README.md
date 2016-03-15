@@ -19,6 +19,7 @@ Configurable frequencies are: hourly, 12 hourly, daily, weekly, monthly
 The plugin is built so that you spend some time setting up "contact" information for the persons in your home and your categories/types of notification. Then the configuration to each notification is minimal and the important options like e-mail addresses etc. can be changed in only one 'central' place.
 
 For more details, see Indigo user forums:
+http://forums.indigodomo.com/viewtopic.php?f=134&t=15768
 
 Enjoy!
 
