@@ -391,6 +391,7 @@ class Plugin(indigo.PluginBase):
 		personNameArray = []
 		variableNameArray = []
 		personDevArray = []
+		notificationText = self.substitute(actionProps[u'text'])
 		if self.extDebug: self.debugLog(u'growlsToSend:\n%s' % unicode(growlsToSend))
 	
 		if send:
@@ -522,7 +523,7 @@ class Plugin(indigo.PluginBase):
 				title = logType
 				emailSubject = 'Indigo ' + title
 			identifier = actionProps[u'identifier']
-			notificationText = self.substitute(actionProps[u'text'])
+			#notificationText = self.substitute(actionProps[u'text']) Moved out of if send, should be set earlier, caused bug
 			emailBody = notificationText + '\n\nIdentifier: ' + identifier + '\nCategory: ' + categoryDev.name + '\nLog type: ' + logType
 		
 		
