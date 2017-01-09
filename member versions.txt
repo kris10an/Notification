@@ -1,0 +1,28 @@
+DEVICES
+*********************
+
+notificationPerson
+*********************
+None:	Initial version
+	
+notificationCategory
+*********************
+None:	Initial version
+1:		v0.9.0
+		updated sendEvery values to be without spaces, as spaces don't work in Indigo
+
+ACTIONS
+*********************
+
+sendNotification
+*********************
+None:	Initial version
+1:		v0.9.0
+		new prefs:
+			notificationType
+			indigoLogLines
+			indigoLogType
+			indigoLogTypeNotMatch
+			indigoLogSeconds
+			indigoLogFinalLines
+			sendEmptyLog

@@ -126,14 +126,14 @@ Delivery options</Label>
 				<Label>Delivery frequency:</Label>
 				<List>
 					<Option value="always">Always</Option>
-					<Option value="1 hour">Once per hour</Option>
-					<Option value="12 hours">Once per 12 hours</Option>
-					<Option value="1 day">Once per day</Option>
-					<Option value="1 week">Once per week</Option>
-					<Option value="1 month">Once per month (30 days)</Option>
+					<Option value="1hour">Once per hour</Option>
+					<Option value="12hours">Once per 12 hours</Option>
+					<Option value="1day">Once per day</Option>
+					<Option value="1week">Once per week</Option>
+					<Option value="1month">Once per month (30 days)</Option>
 				</List>
 			</Field>
-			<Field type="label" id="infoSendEvery" alignWithControl="true" fontSize="small"> <!-- STOPPED working for some reason: visibleBindingId="sendEvery" visibleBindingValue="1 hour,12 hours,1 day,1 week,1 month" -->
+			<Field type="label" id="infoSendEvery" alignWithControl="true" fontSize="small" visibleBindingId="sendEvery" visibleBindingValue="1hour,12hours,1day,1week,1month">
 				<Label>Notification category will not be repeated for the chosen interval. Note that this applies to all notifications using this category, it is normally better to specify this on the notification action level than here.</Label>
 			</Field>
 			<Field type="list" id="presentDeliveryMethod" defaultValue="email,growl" rows="2">
@@ -197,7 +197,7 @@ types:</Label>
 Log options</Label>
 			</Field>
 			<Field id="simpleSeparator2" type="separator" visibleBindingId="nonPersonalDeliveryMethod" visibleBindingValue="log,notificationLog"/>
-			<Field type="menu" id="log" defaultValue="always">
+			<Field type="menu" id="log" defaultValue="always" visibleBindingId="nonPersonalDeliveryMethod" visibleBindingValue="log,notificationLog">
 				<Label>Log:</Label>
 				<List>
 					<Option value="ifPresent">If someone present</Option>

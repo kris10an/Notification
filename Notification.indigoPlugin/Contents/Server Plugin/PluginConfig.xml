@@ -41,6 +41,6 @@
 		<Description>Log all notifications to variables</Description>
 	</Field>
 	<Field type="label" id="infoVariable2" alignWithControl="true" visibleBindingId="alwaysUseVariables" visibleBindingValue="true">
-		<Label>Normally, variables will only be used if delivery frequency in notification action is set to something else than 'always'</Label>
+		<Label>Normally, variables will only be used if delivery frequency in notification action is set to something else than "always"</Label>
 	</Field>
 </PluginConfig>

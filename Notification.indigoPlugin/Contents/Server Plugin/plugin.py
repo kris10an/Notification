@@ -11,8 +11,9 @@ import sys
 import time
 import operator
 from datetime import datetime
-import strvartime
+from lib.strVarTime import timeToStr, timeToVar, strToTime, varToTime, shortTimeToTime, timeDiff, varTimeDiff, prettyDate
 import csv
+from fnmatch import fnmatch
 
 # Note the "indigo" module is automatically imported and made available inside
 # our global name space by the host process.
@@ -25,10 +26,16 @@ pluginId = u'com.kris10an.indigoplugin.notification'
 
 intervalToSeconds = {
 	u'1 hour'	:	60*60,
+	u'1hour'	:	60*60,
 	u'12 hours'	:	60*60*12,
-	u'1 day'		:	60*60*24,
+	u'12hours'	:	60*60*12,
+	u'1 day'	:	60*60*24,
+	u'1day'		:	60*60*24,
 	u'1 week'	:	60*60*24*7,
-	u'1 month'	:	60*60*24*30 }
+	u'1week'	:	60*60*24*7,
+	u'1 month'	:	60*60*24*30,
+	u'1month'	:	60*60*24*30 }
+# FIX 2017-01-07: Added without spaces, As Indigo doesn't support visibleBindingValue with spaces, may remove those with spaces later on
 	
 logFileHeadings = [
 	u'Date',
@@ -80,6 +87,9 @@ class Plugin(indigo.PluginBase):
 		self.categoryList = {} # dev.id : string
 		self.presenceVariableList = {} #var.id : dev.id
 		self.numPersonPresent = 0
+		
+		# Speech announcements
+		self.speakList = list()
 		
 		# Threads
 		#self.threads = []
@@ -145,10 +155,35 @@ class Plugin(indigo.PluginBase):
 		try:
 			while True:
 				# Check for errors
-				if self.pluginConfigErrorState:
-					self.errorLog(self.pluginConfigErrorMsg)
-					
-				self.sleep(5)
+				# FIX, do this not so often
+				#if self.pluginConfigErrorState:
+				#	self.errorLog(self.pluginConfigErrorMsg)
+				
+				for speakDict in self.speakList:
+				
+					if len(speakDict[u'beforeSpeakActionGroup']) > 0:
+						try:
+							indigo.actionGroup.execute(int(speakDict[u'beforeSpeakActionGroup']))
+						except:
+							self.errorLog(u'Could not execute action group specified before speech')
+							raise
+					try:
+						indigo.server.speak(speakDict[u'speakMsg'], waitUntilDone=True)
+					except:
+						self.errorLog(u'Could not speak notification')
+						raise
+					if len(speakDict[u'afterSpeakActionGroup']) > 0:
+						try:
+							indigo.actionGroup.execute(int(speakDict[u'afterSpeakActionGroup']))
+						except:
+							self.errorLog(u'Could not execute action group specified after speech')
+							raise
+				
+				# Clear list of speech messages
+				self.speakList = list()
+				
+				self.sleep(0.5)
+				
 		except self.StopThread:
 			pass
 			
@@ -162,9 +197,15 @@ class Plugin(indigo.PluginBase):
 		#self.debugLog(u'deviceStartComm called: %s' % (unicode(dev)))
 		self.debugLog(u'deviceStartComm called, device %s' % (dev.name))
 		
+		props = dev.pluginProps
+		
 		if dev.deviceTypeId == u'notificationPerson':
+			if u'devVersion' not in props: # device version 0
+				pass
+				
 			self.personUpdatePresence(dev)
-			self.personList[dev.id] = 'active'		
+			self.personList[dev.id] = 'active'
+							
 		elif dev.deviceTypeId == u'notificationCategory':
 			self.categoryList[dev.id] = 'active'	
 			
@@ -200,33 +241,35 @@ class Plugin(indigo.PluginBase):
 	def deviceUpdated(self, origDev, newDev):
 		# call the base's implementation first just to make sure all the right things happen elsewhere
 		# FIX / CHECK should this be done or not?
+		# http://forums.indigodomo.com/viewtopic.php?f=108&t=14647
 		indigo.PluginBase.deviceUpdated(self, origDev, newDev)
+		# update 2017-01: don't believe below is needed, Indigo calls deviceStartComm and deviceStopComm
 		#if self.extDebug: self.debugLog(u'deviceUpdated called %s: \n\n\n***origDev:\n %s\n\n\n***newDev:\n %s' % (newDev.name, unicode(origDev), unicode(newDev)))
 		#else:
 		self.debugLog(u'deviceUpdated called %s' % (newDev.name))
 		
-		if origDev.deviceTypeId != newDev.deviceTypeId:
-			self.debugLog(u'Device type changed, restarting device %s' % (newDev.name))
-			# FIX still some error being thrown when changing device type
-			self.deviceStopComm(newDev)
-			if newDev.enabled:
-				self.deviceStartComm(newDev)
-			return
+		# 		if origDev.deviceTypeId != newDev.deviceTypeId:
+		# 			self.debugLog(u'Device type changed, restarting device %s' % (newDev.name))
+		# 			# FIX still some error being thrown when changing device type
+		# 			self.deviceStopComm(newDev)
+		# 			if newDev.enabled:
+		# 				self.deviceStartComm(newDev)
+		# 			return
 		
-		if newDev.deviceTypeId == u'notificationPerson':
-			if origDev.pluginProps[u'presenceVariable'] != newDev.pluginProps[u'presenceVariable']:
-				self.personUpdatePresence(newDev)
+		# 		if newDev.deviceTypeId == u'notificationPerson':
+		# 			if origDev.pluginProps[u'presenceVariable'] != newDev.pluginProps[u'presenceVariable']:
+		# 				self.personUpdatePresence(newDev)
 			# FIX need to do something else?
-		elif newDev.deviceTypeId == u'notificationCategory':
-			# FIX need to do something else?
-			pass
+		# 		elif newDev.deviceTypeId == u'notificationCategory':
+		# 			# FIX need to do something else?
+		# 			pass
 				
 		# CHECK if this is necessary, or should be handled by Indigo server somehow
-		if origDev.enabled != newDev.enabled:
-			if newDev.enabled:
-				self.deviceStartComm(newDev)
-			else:
-				self.deviceStopComm(newDev)
+		# 		if origDev.enabled != newDev.enabled:
+		# 			if newDev.enabled:
+		# 				self.deviceStartComm(newDev)
+		# 			else:
+		# 				self.deviceStopComm(newDev)
 
 	########################################
 	# Change to device, perform necessary actions
@@ -237,6 +280,7 @@ class Plugin(indigo.PluginBase):
 	# 		if self.extDebug: self.debugLog(u'didDeviceCommPropertyChange called')
 	# 		
 	# 		# Check if it is necessary to restart device, return True if that's the case
+	#		# Example if prefs not necessary for restart device changed, return False
 	# 		
 	# 		return False
 	
@@ -275,6 +319,7 @@ class Plugin(indigo.PluginBase):
 	########################################
 	
 	def sendNotification(self, action):
+		startTime = datetime.now()
 		if self.extDebug: self.debugLog(u"sendNotification action called: props: %s" % (unicode(action)))
 		else: self.debugLog(u'sendNotification action called')
 
@@ -300,6 +345,7 @@ class Plugin(indigo.PluginBase):
 		send = False # whether or not to send notification
 		sent = False # whether or not notification has actually been sent
 		sentOrLog = False # whether or not notification has actually been sent, or logged, or spoken etc.
+		writeLog = False
 		
 		# Find the time to use for the notification
 		notificationTime = datetime.now()
@@ -342,10 +388,10 @@ class Plugin(indigo.PluginBase):
 				# Check when notification category was last sent/used
 				self.debugLog(u'Notification category set to send every %s, need to check last sent time' % (catProps[u'sendEvery']))
 				try:
-					lastSent = strvartime.strToTime(catStates[u'lastNotificationTime'])
+					lastSent = strToTime(catStates[u'lastNotificationTime'])
 					self.debugLog(u'Notification category last sent: %s' % (catStates[u'lastNotificationTime']))
 				except:
-					lastSent = strvartime.strToTime(u'2000-01-01 00:00:00')	
+					lastSent = strToTime(u'2000-01-01 00:00:00')	
 					self.debugLog(u'Last notification time of category could not be obtatined, set to year 2000')
 			
 				#Determine if enough time has passed to send it again
@@ -353,11 +399,11 @@ class Plugin(indigo.PluginBase):
 					self.errorLog(u'Invalid setting for delivery interval for category "%s". Check settings. Notification skipped.\nNotification text: %s' % (categoryDev.name, actionProps[u'text']))
 					return
 				
-				if strvartime.timeDiff(lastSent, notificationTime, 'seconds') >= intervalToSeconds[catProps[u'sendEvery']]:
+				if timeDiff(lastSent, notificationTime, 'seconds') >= intervalToSeconds[catProps[u'sendEvery']]:
 					send = True
-					self.debugLog(u'Notification category set to send every %s, Last notification sent %s. Will send notification now' % (catProps[u'sendEvery'], strvartime.prettyDate(lastSent)))
+					self.debugLog(u'Notification category set to send every %s, Last notification sent %s. Will send notification now' % (catProps[u'sendEvery'], prettyDate(lastSent)))
 				else:
-					self.debugLog(u'Notification category set to send every %s, Last notification sent %s. Will _not_ send notification now' % (catProps[u'sendEvery'], strvartime.prettyDate(lastSent)))
+					self.debugLog(u'Notification category set to send every %s, Last notification sent %s. Will _not_ send notification now' % (catProps[u'sendEvery'], prettyDate(lastSent)))
 		else:
 			self.debugLog(u'Notification category has never been sent before, will send now')
 			send = True
@@ -371,12 +417,12 @@ class Plugin(indigo.PluginBase):
 				notificationVar = indigo.variables[variableNameStr]
 				if self.extDebug: self.debugLog(u'Notification variable value: %s' % (notificationVar.value))
 				timeStr = notificationVar.value.rsplit(u'\t')[0]
-				timeStamp = strvartime.strToTime(timeStr)
+				timeStamp = strToTime(timeStr)
 				if self.extDebug: self.debugLog(u'Notification action last sent: %s' % (timeStr))
-				if strvartime.timeDiff(timeStamp, notificationTime, 'seconds') < intervalToSeconds[actionProps[u'sendEvery']]:
+				if timeDiff(timeStamp, notificationTime, 'seconds') < intervalToSeconds[actionProps[u'sendEvery']]:
 					# Interval/frequency has not been passed, will not send notification
 					send = False
-					self.debugLog(u'Notification action set to send every %s. Last notification sent %s. Will _not_ send notification now' % (actionProps[u'sendEvery'], strvartime.prettyDate(timeStamp)))
+					self.debugLog(u'Notification action set to send every %s. Last notification sent %s. Will _not_ send notification now' % (actionProps[u'sendEvery'], prettyDate(timeStamp)))
 			except:
 				if self.extDebug: self.debugLog(u'Could not get last sent time from variable, assume it hasn\'t been sent before and send notification')
 		elif actionProps[u'sendEvery'] == u'always':
@@ -384,6 +430,79 @@ class Plugin(indigo.PluginBase):
 		else:
 			self.debugLog(u'Determined by notification category last sent and set frequency that notification will not be sent, no need to check last sent time on action level')
 	
+		# Moved from XX1 2017-01-07, need to determine log before making notification text
+		# Determine if log entry is to be made
+		# Check category settings
+		if (u'log' in catProps[u'nonPersonalDeliveryMethod'] or (u'notificationLog' in catProps[u'nonPersonalDeliveryMethod'] and self.pluginLog)):
+			if self.extDebug: self.debugLog(u'Indigo log and/or Notification plugin log selected in notification category')
+			if catProps[u'log'] == u'always':
+				if self.extDebug: self.debugLog(u'Notification category set to always log, log enabled')
+				writeLog = True
+			elif catProps[u'log'] == u'ifPresent':
+				if numPresent > 0:
+					if self.extDebug: self.debugLog(u'Notification category set to log if someone present, %i persons present, log enabled' % (numPresent))
+					writeLog = True
+				elif numPresent == 0 and catProps[u'notifyAllIfNonePresent']:
+					if self.extDebug: self.debugLog(u'Notification category set to log if someone present, no-one is present, but notify all if none present selected -> log enabled' % (numPresent))
+					writeLog = True
+				elif numPresent == 0:
+					self.debugLog(u'Notification category set to log if someone present, but no-one present, log entry disabled')
+					writeLog = False
+				else:
+					self.errorLog(u'Unexpected result when determining whether to log notification category "%s" based on presence, log entry enabled' % (categoryDev.name))
+					writeLog = True
+			else:
+					self.errorLog(u'Unexpected setting for log in notification category "%s", log entry enabled' % (categoryDev.name))
+					writeLog = True
+		else:
+			if self.extDebug: self.debugLog(u'Indigo log and/or Notification plugin log NOT selected in notification category (or plugin preferences), disabling log')
+			writeLog = False
+			
+		# Check speech settings
+		# Moved from XX2 2017-01-07, need to check if speech is to be perfomed prior to finding notification text
+		speech = False
+		# Check if action has override settings
+		if actionProps[u'speak'] == u'default':
+			if self.extDebug: self.debugLog(u'Notification action set to use speech setting of category, checking category setting')
+			# Check category settings
+			if (u'speak' in catProps[u'nonPersonalDeliveryMethod']):
+				if self.extDebug: self.debugLog(u'Speech selected in notification category')
+				if catProps[u'speak'] == u'always':
+					if self.extDebug: self.debugLog(u'Notification category set to always speak, speak enabled')
+					speech = True
+				elif catProps[u'speak'] == u'ifPresent':
+					if numPresent > 0:
+						if self.extDebug: self.debugLog(u'Notification category set to speak if someone present, %i persons present, speech enabled' % (numPresent))
+						speech = True
+					elif numPresent == 0:
+						self.debugLog(u'Notification category set to speak if someone present, but no-one present, speech disabled')
+						speech = False
+					else:
+						self.errorLog(u'Unexpected result when determining whether to speak notification category "%s" based on presence, speech enabled' % (categoryDev.name))
+						speech = True
+				else:
+						self.errorLog(u'Unexpected setting for speech in notification category "%s", speech enabled' % (categoryDev.name))
+						speech = True
+			else:
+				if self.extDebug: self.debugLog(u'Speech NOT selected in notification category, disabling speech')
+				speech = False
+		elif actionProps[u'speak'] == u'always':
+			if self.extDebug: self.debugLog(u'Notification action set to always speak, overriding category setting')
+			speech = True
+		elif actionProps[u'speak'] == u'ifPresent':
+			if numPresent > 0:
+				if self.extDebug: self.debugLog(u'Notification action set to override category setting and speak if someone present -> enabling speech')
+				speech = True
+			else:
+				self.debugLog(u'Notification action set to override category setting and speak if someone present -> disabling speech')
+				speech = False
+		elif actionProps[u'speak'] == u'never':
+			self.debugLog(u'Notification action set to override category setting and never speak -> speech disabled')
+			speech = False
+		else:
+			self.errorLog(u'Unexpected setting for speech in notification action, notification category "%s", speech enabled' % (categoryDev.name))
+			speech = True		
+
 		# Start sending notification
 		growlsToSend = catProps[u'growlTypes'] # List given by notification category, will remove later based on presence
 		emailsToSend = [] # Opposite logic, include later based on presence
@@ -391,8 +510,188 @@ class Plugin(indigo.PluginBase):
 		personNameArray = []
 		variableNameArray = []
 		personDevArray = []
-		notificationText = self.substitute(actionProps[u'text'])
+		#notificationText = self.substitute(actionProps[u'text']), moved below
 		if self.extDebug: self.debugLog(u'growlsToSend:\n%s' % unicode(growlsToSend))
+		
+		# Find notification text
+		if send or writeLog or speech: # Only need to find text if we're going to send notification or make log entry, or make speech announcement
+			
+			if not u'notificationType' in actionProps: # default to text
+				notificationType = u'text'
+			else:
+				notificationType = actionProps[u'notificationType']
+			
+			# Text notification
+			if notificationType == u'text':
+				self.logger.debug(u'Notification type: text')
+				notificationText = self.substitute(actionProps[u'text'])
+				
+			# Notification with latest log entries
+			elif notificationType == u'log':
+				self.logger.debug(u'Notification type: log')
+				notificationTextLines = list()
+				notificationText = u''
+				try:
+					self.logger.debug(u'Getting %d log lines from Indigo' % (int(actionProps[u'indigoLogLines'])))
+					logText = indigo.server.getEventLogList(lineCount=int(actionProps[u'indigoLogLines']))
+				except:
+					self.errorLog(u'Could not get log from Indigo, cancelling send notification action')
+					raise
+					return False
+					
+				logList = logText.split(u'\n')
+				self.logger.debug(u'Retrieved %d log lines from Indigo' % (len(logList)))
+				
+				# Check if we are to match on time, last X seconds
+				if len(actionProps[u'indigoLogSeconds']) > 0:
+					try:
+						matchSeconds = int(actionProps[u'indigoLogSeconds'])
+					except ValueError:
+						self.logger.error(u'Could not get configuration value for last X seconds of log, please check action settings, should be valid integer')
+						matchSeconds = 0
+					except:
+						raise
+					else:
+						self.logger.debug(u'Filtering log entries on time, last %d seconds' % (matchSeconds))
+				else:
+					matchSeconds = 0
+					self.logger.debug(u'Not filtering log entries based on time')
+					
+				# Check if we're going to match on logType
+				if len(actionProps[u'indigoLogType']) > 0:
+					matchLogType = True
+					matchLogTypePattern = actionProps[u'indigoLogType'].lower()
+					self.logger.debug(u'Filtering log entries on log type')
+				else:
+					matchLogType = False
+					self.logger.debug(u'Not filtering log entries on log type')
+					
+				# Check if we're going to exclude certain matches on logType
+				if len(actionProps[u'indigoLogTypeNotMatch']) > 0:
+					notMatchLogType = True
+					notMatchLogTypePattern = actionProps[u'indigoLogTypeNotMatch'].lower()
+					self.logger.debug(u'Excluding log entries of certain log type')
+				else:
+					notMatchLogType = False
+					self.logger.debug(u'Not excluding log entries on log type')
+					
+				# Find final number of log lines to include
+				try:
+					finalLogLines = int(actionProps[u'indigoLogFinalLines'])
+				except ValueError:
+					self.logger.error(u'Could not get final number of log lines to include, defaulting to 10. please check action settings, should be valid integer')
+					finalLogLines = 10
+				except:
+					raise
+				else:
+					self.logger.debug(u'Returning maximum %d number of log lines after filtering' % (finalLogLines))
+				
+				includeLogLine = False # whether or not to include actual log line in final result, initial value
+				firstMatched = False # whether or not first line with date has been matched
+				matchOnLogType = False
+				
+				for logLine in logList:
+					logLineItems = logLine.split(u'\t')
+					
+					if self.extDebug: self.logger.debug(u'logLineItems: %s' % (unicode(logLineItems)))
+					
+					# Check if this is a "new" entry, i.e. with timestamp and log type
+					try:
+						logTimestamp = strToTime(logLineItems[0])
+						currLogType = logLineItems[1].lower()
+					except:
+						newEntry = False # Check if entry is "new", i.e. starts with date/time
+						# keep previous timestamp
+					else:
+						newEntry = True
+						firstMatched = True
+						
+					if self.extDebug: self.logger.debug(u'newEntry: %s, firstMatched: %s' % (newEntry, firstMatched))
+					
+					# Match on time
+					if matchSeconds > 0:
+						# Match on time
+						if newEntry:
+							# First line of log entry, with timestamp
+							if self.extDebug: self.logger.debug(u'timeDiff: %d' % (timeDiff(logTimestamp, u'now', u'seconds')))
+							if timeDiff(logTimestamp, u'now', u'seconds') > matchSeconds:
+								# Log entry is more than matchSeconds seconds ago, disregard
+								if self.extDebug: self.logger.debug(u'More than X seconds ago, disregarding')
+								includeLogLine = False
+								continue
+							else:
+								# Log entry is less than matchSeconds ago, include
+								if self.extDebug: self.logger.debug(u'Less than X seconds ago, including')
+								includeLogLine = True
+						else:
+							# Not first line -> line without timeStamp
+							# Use previous value of includeLogLine
+							if self.extDebug: self.logger.debug(u'Not first line of log entry, not checking time')
+							pass
+					else:
+						if firstMatched:
+							includeLogLine = True
+						
+					# Match on log type
+					if newEntry:
+						if includeLogLine:
+							matchOnLogType = True
+							if matchLogType and not fnmatch(currLogType, matchLogTypePattern):
+								if self.extDebug: self.logger.debug(u'Not matched on log type')
+								matchOnLogType = False
+							if includeLogLine and notMatchLogType and fnmatch(currLogType, notMatchLogTypePattern):
+								if self.extDebug: self.logger.debug(u'Excluded based on log type')
+								matchOnLogType = False
+								
+					if not matchOnLogType:
+						includeLogLine = False
+					
+					if self.extDebug: self.logger.debug(u'includeLogLine: %s' % (unicode(includeLogLine).upper()))
+					
+					if includeLogLine:
+						notificationTextLines.append(logLine)
+				
+				# Return a certain maximum number of log lines after filtering
+				if finalLogLines > len(notificationTextLines):
+					startLine = 0
+				else:
+					startLine = len(notificationTextLines) - finalLogLines
+					
+				finalNotificationTextLines = notificationTextLines[startLine:]
+				
+				if len(finalNotificationTextLines) == 0:
+					notificationText = u'Did not match any log lines'
+					if not actionProps.get(u'sendEmptyLog', False):
+						# Cancel sending and speaking
+						self.logger.info(u'Cancelling sending and speaking log notification, as no log lines were matched')
+						send = speech = False
+				else:
+					notificationText = u'\n' + u'\n'.join(finalNotificationTextLines)
+					
+				
+			# Invalid configuration
+			else:
+				self.errorLog(u'Invalid notification type specified, cancelling send notification')
+				return False
+				
+		if send or speech or writeLog: # If we're still going to send or speech or log. Find common prefs and properties
+			# Find log type, title etc.
+			# FIX add substitution
+			if len(actionProps[u'logType']) > 0:
+				logType = actionProps[u'logType']
+			else:
+				logType = catProps[u'logType']
+			if len(actionProps[u'title']) > 0:
+				title = actionProps[u'title']
+				emailSubject = title
+			else:
+				title = logType
+				emailSubject = 'Indigo ' + title
+			
+			identifier = actionProps.get(u'identifier',u'')
+			
+			numPresent = self.numPersonPresent
+			self.debugLog(u'%i persons indicated as present' % (numPresent))
 	
 		if send:
 								
@@ -400,8 +699,6 @@ class Plugin(indigo.PluginBase):
 			#self.debugLog(u'Notification category configured to use presence, updating presence status of persons')
 			#numPresent = self.personsUpdatePresence(True)
 			#self.debugLog(u'%i persons found to be present' % (numPresent))
-			numPresent = self.numPersonPresent
-			self.debugLog(u'%i persons indicated as present' % (numPresent))
 			
 			# Check if 'all' is selected as recipient
 			if u'all' in catProps[u'deliverTo']:
@@ -480,7 +777,7 @@ class Plugin(indigo.PluginBase):
 				self.debugLog(u'emailsToSend:\n%s' % unicode(emailsToSend))
 				self.debugLog(u'notifyVars:\n%s' % unicode(notifyVars))
 			
-			# FIX join below two section	
+			# FIX join below two sections
 			# Determine additional recipient given by category
 			self.debugLog(u'Determine additional recipient given by notification category, regardless of presence etc.')
 			if len(catProps[u'alwaysDeliverTo']) > 0:
@@ -496,7 +793,7 @@ class Plugin(indigo.PluginBase):
 					else:
 						self.errorLog(u'Invalid delivery method "%s" spefified for additional receipients for notification category "%s". Valid options are: email' % (rcpt[0], categoryDev.name))
 					
-			# Determine additional recipient given by category
+			# Determine additional recipient given by action
 			self.debugLog(u'Determine additional recipient given by notification action, regardless of presence etc.')
 			if len(actionProps[u'additionalRecipients']) > 0:
 				rcptArray = actionProps[u'additionalRecipients'].replace(u'\n',u'').split(u',')
@@ -511,18 +808,6 @@ class Plugin(indigo.PluginBase):
 					else:
 						self.errorLog(u'Invalid delivery method "%s" spefified for additional receipients for notification action. Valid options are: email' % (rcpt[0]))
 		
-			# Find log type, title etc.
-			if len(actionProps[u'logType']) > 0:
-				logType = actionProps[u'logType']
-			else:
-				logType = catProps[u'logType']
-			if len(actionProps[u'title']) > 0:
-				title = actionProps[u'title']
-				emailSubject = title
-			else:
-				title = logType
-				emailSubject = 'Indigo ' + title
-			identifier = actionProps[u'identifier']
 			#notificationText = self.substitute(actionProps[u'text']) Moved out of if send, should be set earlier, caused bug
 			emailBody = notificationText + '\n\nIdentifier: ' + identifier + '\nCategory: ' + categoryDev.name + '\nLog type: ' + logType
 		
@@ -577,79 +862,42 @@ class Plugin(indigo.PluginBase):
 		# Perform regardless of presence settings etc.
 		sentOrLog = sent # start with initial value of sent variable
 		
-		# Check speech settings
-		speech = False
-		# Check if action has override settings
-		if actionProps[u'speak'] == u'default':
-			if self.extDebug: self.debugLog(u'Notification action set to use speech setting of category, checking category setting')
-			# Check category settings
-			if (u'speak' in catProps[u'nonPersonalDeliveryMethod']):
-				if self.extDebug: self.debugLog(u'Speech selected in notification category')
-				if catProps[u'speak'] == u'always':
-					if self.extDebug: self.debugLog(u'Notification category set to always speak, speak enabled')
-					speech = True
-				elif catProps[u'speak'] == u'ifPresent':
-					if numPresent > 0:
-						if self.extDebug: self.debugLog(u'Notification category set to speak if someone present, %i persons present, speech enabled' % (numPresent))
-						speech = True
-					elif numPresent == 0:
-						self.debugLog(u'Notification category set to speak if someone present, but no-one present, speech disabled')
-						speech = False
-					else:
-						self.errorLog(u'Unexpected result when determining whether to speak notification category "%s" based on presence, speech enabled' % (categoryDev.name))
-						speech = True
-				else:
-						self.errorLog(u'Unexpected setting for speech in notification category "%s", speech enabled' % (categoryDev.name))
-						speech = True
-			else:
-				if self.extDebug: self.debugLog(u'Speech NOT selected in notification category, disabling speech')
-				speech = False
-		elif actionProps[u'speak'] == u'always':
-			if self.extDebug: self.debugLog(u'Notification action set to always speak, overriding category setting')
-			speech = True
-		elif actionProps[u'speak'] == u'ifPresent':
-			if numPresent > 0:
-				if self.extDebug: self.debugLog(u'Notification action set to override category setting and speak if someone present -> enabling speech')
-				speech = True
-			else:
-				self.debugLog(u'Notification action set to override category setting and speak if someone present -> disabling speech')
-				speech = False
-		elif actionProps[u'speak'] == u'never':
-			self.debugLog(u'Notification action set to override category setting and never speak -> speech disabled')
-			speech = False
-		else:
-			self.errorLog(u'Unexpected setting for speech in notification action, notification category "%s", speech enabled' % (categoryDev.name))
-			speech = True
+		#XX2 moved up
 			
 		# Perform speech
 		if speech and send: # send - use frequency setting from delivery methods
-			self.debugLog(u'Speaking notification and waiting until finished')
+			self.debugLog(u'Adding notification to list of speech announcements')
 			#thread.start_new_thread( speakNotification, (notificationText, catProps[u'beforeSpeakActionGroup'], catProps[u'afterSpeakActionGroup'] ) )
 			#speakThread = speakNotificationThread(notificationText, catProps[u'beforeSpeakActionGroup'], catProps[u'afterSpeakActionGroup'] )
 			#speakThread.start()
 			#self.threads.append(speakThread)
 			#speakThread.join()
 			#if self.extDebug: self.debugLog(u'Thread for speech notification started')
-			if len(catProps[u'beforeSpeakActionGroup']) > 0:
-				try:
-					indigo.actionGroup.execute(int(catProps[u'beforeSpeakActionGroup']))
-				except:
-					self.errorLog(u'Could not execute action group specified before speech')
-			try:
-				indigo.server.speak(notificationText, waitUntilDone=True)
-			except:
-				self.errorLog(u'Could not speak notification')
-			if len(catProps[u'afterSpeakActionGroup']) > 0:
-				try:
-					indigo.actionGroup.execute(int(catProps[u'afterSpeakActionGroup']))
-				except:
-					self.errorLog(u'Could not execute action group specified after speech')
+			# REMOVED below, moved speech to runConcurrentThread
+			# 			if len(catProps[u'beforeSpeakActionGroup']) > 0:
+			# 				try:
+			# 					indigo.actionGroup.execute(int(catProps[u'beforeSpeakActionGroup']))
+			# 				except:
+			# 					self.errorLog(u'Could not execute action group specified before speech')
+			# 			try:
+			# 				indigo.server.speak(notificationText, waitUntilDone=True)
+			# 			except:
+			# 				self.errorLog(u'Could not speak notification')
+			# 			if len(catProps[u'afterSpeakActionGroup']) > 0:
+			# 				try:
+			# 					indigo.actionGroup.execute(int(catProps[u'afterSpeakActionGroup']))
+			# 				except:
+			# 					self.errorLog(u'Could not execute action group specified after speech')
+			
+			self.speakList.append({
+				u'speakMsg' : notificationText,
+				u'afterSpeakActionGroup' : catProps[u'afterSpeakActionGroup'],
+				u'beforeSpeakActionGroup' : catProps[u'beforeSpeakActionGroup']})
 			sentOrLog = True
 		else:
 			self.debugLog(u'Speech not performed due to settings')
 		
 		# Indigo log and notification plugin log
-		writeLog = False
 		
 		'''
 		Ref. issue #11 github
@@ -698,34 +946,11 @@ class Plugin(indigo.PluginBase):
 		else:
 			self.errorLog(u'Unexpected setting for log in notification action, notification category "%s", log entry enabled' % (categoryDev.name))
 			writeLog = True'''
-		
-		# Check category settings
-		if (u'log' in catProps[u'nonPersonalDeliveryMethod'] or (u'notificationLog' in catProps[u'nonPersonalDeliveryMethod'] and self.pluginLog)):
-			if self.extDebug: self.debugLog(u'Indigo log and/or Notification plugin log selected in notification category')
-			if catProps[u'log'] == u'always':
-				if self.extDebug: self.debugLog(u'Notification category set to always log, log enabled')
-				writeLog = True
-			elif catProps[u'log'] == u'ifPresent':
-				if numPresent > 0:
-					if self.extDebug: self.debugLog(u'Notification category set to log if someone present, %i persons present, log enabled' % (numPresent))
-					writeLog = True
-				elif numPresent == 0 and catProps[u'notifyAllIfNonePresent']:
-					if self.extDebug: self.debugLog(u'Notification category set to log if someone present, no-one is present, but notify all if none present selected -> log enabled' % (numPresent))
-					writeLog = True
-				elif numPresent == 0:
-					self.debugLog(u'Notification category set to log if someone present, but no-one present, log entry disabled')
-					writeLog = False
-				else:
-					self.errorLog(u'Unexpected result when determining whether to log notification category "%s" based on presence, log entry enabled' % (categoryDev.name))
-					writeLog = True
-			else:
-					self.errorLog(u'Unexpected setting for log in notification category "%s", log entry enabled' % (categoryDev.name))
-					writeLog = True
-		else:
-			if self.extDebug: self.debugLog(u'Indigo log and/or Notification plugin log NOT selected in notification category (or plugin preferences), disabling log')
-			writeLog = False		
+			
+		#XX1 moved further up	
 		
 		# Start writing log entries
+		# FIX, consider moving above sending notification
 		if writeLog:
 			# Check log As Error
 			logAsError = False
@@ -809,12 +1034,14 @@ class Plugin(indigo.PluginBase):
 					self.debugLog(u'Created variable "%s" with id "%s"' % (variableNameStr, unicode(notificationVar.id)))
 				except:
 					self.errorLog(u'Could not create variable "%s" in folder "%s"' % (variableNameStr, self.varFolderName))
+					raise
 			else:
 				# get variable
 				try:
 					notificationVar = indigo.variables[variableNameStr]
 				except:
 					self.errorLog(u'Could not get variable "%s"' % (variableNameStr))
+					raise
 			
 			if self.extDebug: self.debugLog(u'notification log variable: %s' % (unicode(notificationVar)))
 			# set variable value
@@ -822,7 +1049,7 @@ class Plugin(indigo.PluginBase):
 			# Indigo doesn't have a last changed attribute of the variable, so timestamp needs to be inserted
 			try:
 				if self.extDebug: self.debugLog(u'Setting value of variable "%s"' % (variableNameStr))
-				varStr = strvartime.timeToStr() + u'\t' + actionProps[u'text'] + u'\t' + unicode(categoryDev.id)
+				varStr = timeToStr() + u'\t' + actionProps[u'text'] + u'\t' + unicode(categoryDev.id)
 				if self.extDebug: self.debugLog(u'varStr: %s' % (varStr))
 				indigo.variable.updateValue(notificationVar, varStr)
 				self.debugLog(u'Value of variable "%s" set to: %s' % (variableNameStr, varStr))
@@ -834,26 +1061,29 @@ class Plugin(indigo.PluginBase):
 			for personDev in personDevArray:
 				# FIX is there a way to update all states simultaneously? Tried below, but does not work
 				self.debugLog(u'Updating device states for "%s"' % (personDev.name))
-				'''personDev.states[u'lastNotificationTime'] = strvartime.timeToStr(notificationTime)
-				personDev.states[u'lastNotificationTime.ui'] = strvartime.timeToStr(notificationTime, format='short')
+				'''personDev.states[u'lastNotificationTime'] = timeToStr(notificationTime)
+				personDev.states[u'lastNotificationTime.ui'] = timeToStr(notificationTime, format='short')
 				personDev.states[u'lastNotificationIdentifier'] = identifier
 				personDev.states[u'lastNotificationText'] = notificationText
 				personDev.states[u'lastNotificationCategory'] = categoryDev.name
 				personDev.replaceOnServer()
 				personDev.stateListOrDisplayStateIdChanged()'''
-				personDev.updateStateOnServer(u'lastNotificationTime', strvartime.timeToStr(notificationTime), uiValue=strvartime.timeToStr(notificationTime, format='short'))
+				personDev.updateStateOnServer(u'lastNotificationTime', timeToStr(notificationTime), uiValue=timeToStr(notificationTime, format='short'))
 				personDev.updateStateOnServer(u'lastNotificationIdentifier', identifier)
 				personDev.updateStateOnServer(u'lastNotificationText', notificationText)
 				personDev.updateStateOnServer(u'lastNotificationCategory', categoryDev.name)
 				personDev.stateListOrDisplayStateIdChanged()
 				
 			self.debugLog(u'Update notification category device states')
-			categoryDev.updateStateOnServer(u'lastNotificationTime', strvartime.timeToStr(notificationTime), uiValue=strvartime.timeToStr(notificationTime, format='short'))
+			categoryDev.updateStateOnServer(u'lastNotificationTime', timeToStr(notificationTime), uiValue=timeToStr(notificationTime, format='short'))
 			categoryDev.updateStateOnServer(u'lastNotificationIdentifier', identifier)
 			categoryDev.updateStateOnServer(u'lastNotificationText', notificationText)
 			categoryDev.updateStateOnServer(u'lastLogType', logType)
 			categoryDev.updateStateOnServer(u'lastNotifiedPersons', u', '.join(personNameArray))
 			categoryDev.stateListOrDisplayStateIdChanged()
+		
+		execTime = datetime.now() - startTime
+		self.debugLog(u'sendNotification action completed in %d.%d seconds' % (execTime.seconds, execTime.microseconds))
 			
 		#self.debugLog(u"%s" % unicode(categoryDev))
 
@@ -935,6 +1165,8 @@ class Plugin(indigo.PluginBase):
 	def validateActionConfigUi(self, valuesDict, typeId, devId):
 		# 
 		if self.extDebug: self.debugLog(u"validateActionConfigUi: typeId: %s  devId: %s  valuesDict: %s" % (typeId, unicode(devId), unicode(valuesDict)))
+
+		# FIX add validation for log type
 
 		errorDict = indigo.Dict()
 		
@@ -1173,7 +1405,8 @@ class Plugin(indigo.PluginBase):
 		self.numPersonPresent = len(self.personPresentList)
 		
 		# refresh Indigo, not sure if this is necessary?
-		dev.stateListOrDisplayStateIdChanged()
+		# removed, ref. issue #3
+		#dev.stateListOrDisplayStateIdChanged()
 		
 	def checkAndCreateLogDir(self, dirname):
 		# credit http://stackoverflow.com/questions/12517451/python-automatically-creating-directories-with-file-output

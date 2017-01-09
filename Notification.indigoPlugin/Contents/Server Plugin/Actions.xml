@@ -5,10 +5,64 @@
 		<Name>Notification (notification plugin)</Name>
 		<CallbackMethod>sendNotification</CallbackMethod>
 		<ConfigUI>
-			<Field type="label" id="introspace">
+			<!--Field type="label" id="introspace">
 				<Label> </Label>
+			</Field-->
+			<Field type="label" id="notificationHeading" fontColor="blue">
+				<Label>
+Notification settings:</Label>
 			</Field>
-			<Field type="textfield" id="text">
+			<Field id="simpleSeparator3" type="separator"/>
+			<Field type="menu" id="notificationType" defaultValue="text">
+				<List>
+					<Option value="text">Text notification</Option>
+					<Option value="log">Indigo log</Option>
+				</List>
+				<Label>Notification:</Label>
+			</Field>
+			
+			<!-- LOG -->
+			
+			<Field type="textfield" id="indigoLogLines" defaultValue="100" visibleBindingId="notificationType" visibleBindingValue="log" alwaysUseInDialogHeightCalc="true">
+				<Label>Lines:</Label>
+			</Field>
+			<Field id="indigoLogLinesLabel" type="label" alignWithControl="true" visibleBindingId="notificationType" visibleBindingValue="log" fontSize="small" fontColor="darkgray" alwaysUseInDialogHeightCalc="true">
+				<Label>Number of lines to initially return from Indigo log, then filter on below values</Label>
+			</Field>
+			<Field type="textfield" id="indigoLogType" defaultValue="" visibleBindingId="notificationType" visibleBindingValue="log" alwaysUseInDialogHeightCalc="true">
+				<Label>Log type:</Label>
+			</Field>
+			<Field type="label" id="indigoLogTypeLabel" visibleBindingId="notificationType" visibleBindingValue="log" alignWithControl="true" fontSize="small" fontColor="darkgray" alwaysUseInDialogHeightCalc="true">
+				<Label>Filter on log type, leave blank for no filter, wildcards (*/?) allowed</Label>
+			</Field>
+			<Field type="textfield" id="indigoLogTypeNotMatch" defaultValue="" visibleBindingId="notificationType" visibleBindingValue="log" alwaysUseInDialogHeightCalc="true">
+				<Label>Not log type:</Label>
+			</Field>
+			<Field type="label" id="indigoLogTypeNotMatchLabel" visibleBindingId="notificationType" visibleBindingValue="log" alignWithControl="true" fontSize="small" fontColor="darkgray" alwaysUseInDialogHeightCalc="true">
+				<Label>Exclude matches on this log type, wildcards (*/?) allowed</Label>
+			</Field>
+			<Field type="textfield" id="indigoLogSeconds" defaultValue="" visibleBindingId="notificationType" visibleBindingValue="log" alwaysUseInDialogHeightCalc="true">
+				<Label>Time (s):</Label>
+			</Field>
+			<Field type="label" id="indigoLogSecondsLabel" visibleBindingId="notificationType" visibleBindingValue="log" alignWithControl="true" fontSize="small" fontColor="darkgray" alwaysUseInDialogHeightCalc="true">
+				<Label>Include log entries for the last X seconds, leave blank for no filter</Label>
+			</Field>
+			<Field type="textfield" id="indigoLogFinalLines" defaultValue="10" visibleBindingId="notificationType" visibleBindingValue="log" alwaysUseInDialogHeightCalc="true">
+				<Label>Final lines:</Label>
+			</Field>
+			<Field id="indigoLogFinalLinesLabel" type="label" alignWithControl="true" visibleBindingId="notificationType" visibleBindingValue="log" fontSize="small" fontColor="darkgray" alwaysUseInDialogHeightCalc="true">
+				<Label>After filtering, keep this number of log lines</Label>
+			</Field>
+			<Field type="checkbox" id="sendEmptyLog" defaultValue="false" visibleBindingId="notificationType" visibleBindingValue="log" alwaysUseInDialogHeightCalc="true">
+				<Label>Send empty:</Label>
+			</Field>
+			<Field id="sendEmptyLogLabel" type="label" alignWithControl="true" visibleBindingId="notificationType" visibleBindingValue="log" fontSize="small" fontColor="darkgray" alwaysUseInDialogHeightCalc="true">
+				<Label>Send notification even if no log lines are matched</Label>
+			</Field>
+			
+			<!-- TEXT NOTIFICATION -->
+			
+			<Field type="textfield" id="text" visibleBindingId="notificationType" visibleBindingValue="text" alwaysUseInDialogHeightCalc="true">
 				<Label>Notification
 text:
 
@@ -18,19 +72,27 @@ text:
 
 </Label>
 			</Field>
-			<Field type="label" id="textGuidance" alignWithControl="true">
-				<Label>(alt+enter for line break)</Label>
+			<Field type="label" id="textGuidance" alignWithControl="true" visibleBindingId="notificationType" visibleBindingValue="text" fontSize="small" fontColor="darkgray" alwaysUseInDialogHeightCalc="true">
+				<Label>(alt+enter for line break). Device/variable substitution possible</Label>
 			</Field>
+			
+			<!-- TITLE AND FREQUENCY -->
+						
+			<Field type="label" id="frequencyHeading" fontColor="blue">
+				<Label>
+Title and frequency settings:</Label>
+			</Field>
+			<Field id="simpleSeparator2" type="separator"/>
 			<Field type="textfield" id="title">
 				<Label>Title:</Label>
 			</Field>
-			<Field type="label" id="titleGuidance" alignWithControl="true">
+			<Field type="label" id="titleGuidance" alignWithControl="true" fontSize="small" fontColor="darkgray">
 				<Label>Subject for e-mail, title for growl notification. Log type from category will be used if left blank</Label>
 			</Field>
 			<Field type="textfield" id="identifier">
 				<Label>Identifier:</Label>
 			</Field>
-			<Field type="label" id="identifierGuidance" alignWithControl="true">
+			<Field type="label" id="identifierGuidance" alignWithControl="true" fontSize="small" fontColor="darkgray">
 				<Label>You may specify an (optional) identifier for the notification which allows you to do the following:
 1) Identify where your notification was sent from
 2) Not resend the notification for a given interval (below):</Label>
@@ -40,17 +102,17 @@ text:
 frequency:</Label>
 				<List>
 					<Option value="always">Always</Option>
-					<Option value="1 hour">Once per hour</Option>
-					<Option value="12 hours">Once per 12 hours</Option>
-					<Option value="1 day">Once per day</Option>
-					<Option value="1 week">Once per week</Option>
-					<Option value="1 month">Once per month (30 days)</Option>
+					<Option value="1hour">Once per hour</Option>
+					<Option value="12hours">Once per 12 hours</Option>
+					<Option value="1day">Once per day</Option>
+					<Option value="1week">Once per week</Option>
+					<Option value="1month">Once per month (30 days)</Option>
 				</List>
 			</Field>
-			<Field type="label" id="infoSendEvery" visibleBindingId="sendEvery" visibleBindingValue="1 hour,12 hours,1 day,1 week,1 month" alignWithControl="true">
+			<Field type="label" id="infoSendEvery" visibleBindingId="sendEvery" visibleBindingValue="1hour,12hours,1day,1week,1month" alignWithControl="true" fontSize="small" fontColor="darkgray" alwaysUseInDialogHeightCalc="true">
 				<Label>Notifications with the above given identifier will not be repeated for the chosen interval.</Label>
 			</Field>
-			<Field type="label" id="introOverride">
+			<Field type="label" id="introOverride" fontColor="blue">
 				<Label>
 Override category settings (optional):</Label>
 			</Field>
@@ -62,7 +124,7 @@ Override category settings (optional):</Label>
 				<Label>Additional
 recipients:</Label>
 			</Field>
-			<Field type="label" id="alwaysEmailGuidance" alignWithControl="true">
+			<Field type="label" id="alwaysEmailGuidance" alignWithControl="true" fontSize="small" fontColor="darkgray">
 				<Label>Specified recipients in addition to the ones from category
 Syntax: email:john@doe.com,email:mrjones@hotmail.com</Label>
 			</Field>
@@ -75,7 +137,7 @@ Syntax: email:john@doe.com,email:mrjones@hotmail.com</Label>
 					<Option value="never">Never</Option>
 				</List>
 			</Field>
-			<Field type="label" id="speakGuidance" alignWithControl="true">
+			<Field type="label" id="speakGuidance" alignWithControl="true" fontSize="small" fontColor="darkgray">
 				<Label>Above is with presence in mind</Label>
 			</Field>
 			<!-- DISABLED due to complexity
